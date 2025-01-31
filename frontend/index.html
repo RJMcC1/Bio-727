@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>T2D SNP Explorer</title>
+  <!-- Linking my CSS file -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Welcome to T2D SNP Explorer</h1>
+    <!-- Potential nav bar or simple links -->
+  </header> 
+
+  <main> 
+    <section id="searchSection">
+      <h2>Search SNPs</h2>
+      <!-- Simple form placeholders -->
+      <form id="searchForm">
+        <input type="text" placeholder="Enter SNP (e.g. rs12345)" />
+        <button type="submit">Search</button>
+      </form>
+    </section>
+
+    <section id="resultsSection">
+      <h2>Results</h2>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>SNP</th>
+            <th>Position</th>
+            <th>p-value</th>
+            <th>Gene</th>
+            <th>Selection Stats</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <!-- Mac user’s JS will fill this in later -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 T2D SNP Explorer</p>
+  </footer>
+
+  <!-- Mac user might add a <script src="js/scripts.js"></script> here later -->
+</body>
+</html>
