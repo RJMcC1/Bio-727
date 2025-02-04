@@ -5,6 +5,8 @@
   <title>T2D SNP Explorer</title>
   <!-- Linking my CSS file -->
   <link rel="stylesheet" href="css/styles.css" />
+  <!-- Chart library -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
   <header>
@@ -13,16 +15,16 @@
   </header> 
 
   <main>
+    <!-- Search Section -->
     <section id="searchSection">
       <h2>Search SNPs</h2>
-      <!-- Simple form placeholders -->
       <form id="searchForm">
         <input type="text" placeholder="Enter SNP (e.g. rs12345)" />
         <button type="submit">Search</button>
       </form>
     </section>
 
-
+    <!-- Results Section -->
     <section id="resultsSection">
       <h2>Results</h2>
       <table id="resultsTable">
@@ -39,6 +41,12 @@
           <!-- Mac user’s JS will fill this in later -->
         </tbody>
       </table>
+    </section>
+
+    <!-- Selection Statistics Plot -->
+    <section id="plotSection">
+      <h2>Selection Statistics Plot</h2>
+      <div id="plotDiv"></div>
     </section>
   </main>
 
