@@ -14,7 +14,8 @@ def create_database():
                     gene_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     gene_name TEXT NOT NULL,
                     functional_term TEXT,
-                    ontology_term TEXT
+                    ontology_term TEXT,
+                    phenotype TEXT
                     )''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS functional_term_gene_link (
