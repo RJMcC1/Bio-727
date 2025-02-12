@@ -37,7 +37,6 @@ def serve_static(filename):
     """
     return send_from_directory("static", filename)
 
-
 # API Endpoints: List Available Routes
 @app.route('/api/routes', methods=['GET'])
 def list_routes():
@@ -51,35 +50,56 @@ def list_routes():
 # API Endpoint: Search for an SNP
 @app.route('/api/search', methods=['GET'])
 def search_snp():
-    """
-    Searches for an SNP in the database and returns relevant data.
-    """
-    snp_id = request.args.get('snp')    # Get SNP ID from query parameters
-    if not snp_id:
-        return jsonify({"error": "Missing SNP ID"}), 400    # Return error if no SNP ID provided
+    snp_id = request.args.get('snp')
+    chromosome = request.args.get('chromosome')
+    start_pos = request.args.get('start')
+    gene_name = request.args.get('gene')
+
+    if start_pos:
+        try:
+            start_pos = int(start_pos)
+        except ValueError:
+            return jsonify({"error": "Start position must be an integer"}), 400
 
     conn = get_db_connection()
     if not conn:
-        return jsonify({"error": "Database connection failed"}), 500    # Return error if database fails to connect
-    
-    cursor = conn.cursor()
+        return jsonify({"error": "Database connection failed"}), 500
 
-    # Short SQL query to fetch SNP data, along with gene and selection statistics
+    cursor = conn.cursor()
     query = """
-        SELECT snp.snp_name AS snp_id, snp.start_position, snp.p_value, gene.gene_name, ss.average_stat
+        SELECT snp.snp_name, snp.chromosome, snp.start_position, snp.p_value, 
+               gene.gene_name, population.population_name, 
+               snp_population_selection_stats.selection_statistic_1, 
+               snp_population_selection_stats.selection_statistic_2
         FROM snp 
-        JOIN gene ON snp.mapped_gene_id = gene.gene_id
-        LEFT JOIN selection_statistics_avg_std_dev ss ON snp.snp_id = ss.snp_id
-        WHERE snp.snp_name = ?
+        LEFT JOIN gene ON snp.mapped_gene_id = gene.gene_id
+        LEFT JOIN snp_population_selection_stats ON snp.snp_id = snp_population_selection_stats.snp_id
+        LEFT JOIN population ON snp_population_selection_stats.population_id = population.population_id
+        WHERE 1=1
     """
-    cursor.execute(query, (snp_id,))    # Execute query with the provided SNP ID
-    snp_data = cursor.fetchall()    # Fetch all matching records
-    conn.close()    # Close the database connection
-    
+    params = []
+
+    if snp_id:
+        query += " AND snp.snp_name = ?"
+        params.append(snp_id)
+    if chromosome:
+        query += " AND snp.chromosome = ?"
+        params.append(chromosome)
+    if start_pos:
+        query += " AND snp.start_position >= ?"
+        params.append(start_pos)
+    if gene_name:
+        query += " AND LOWER(gene.gene_name) LIKE LOWER(?)"
+        params.append(f"%{gene_name}%")
+
+    cursor.execute(query, tuple(params))
+    snp_data = cursor.fetchall()
+    conn.close()
+
     if not snp_data:
-        return jsonify({"error": "SNP not found"}), 404 # Return error if SNP is not found
-    
-    return jsonify([dict(row) for row in snp_data]) # Convert results to JSON and return
+        return jsonify({"error": "No SNPs found"}), 404
+
+    return jsonify([dict(row) for row in snp_data])
 
 # API Endpoint: Fetch Gene Ontology Information
 @app.route('/api/gene-ontology', methods=['GET'])
@@ -112,8 +132,29 @@ def get_gene_ontology():
     
     return jsonify(dict(gene_data)) # Convert result to JSON and return
 
+@app.route('/api/gene-info', methods=['GET'])
+def get_gene_info():
+    gene_name = request.args.get('gene')
+    if not gene_name:
+        return jsonify({"error": "Gene name is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT gene_name, functional_term, ontology_term FROM gene WHERE gene_name LIKE ?"
+    cursor.execute(query, (f"%{gene_name}%",))
+    gene_data = cursor.fetchone()
+    conn.close()
+
+    if not gene_data:
+        return jsonify({"error": "Gene not found"}), 404
+
+    return jsonify({
+    "gene": gene_data["gene"],
+    "function": gene_data["function"],
+    "ontology_term": gene_data["ontology_term"]
+})
+
 # Runs the Flask Application
 if __name__ == '__main__':
     app.run(debug=True) # Start the Flask server in debug mode
-
-

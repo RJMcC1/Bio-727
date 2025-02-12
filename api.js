@@ -1,20 +1,14 @@
-// API Fetch Functions to call our back-end API using fetch()
-// api.js - Fetch SNP and Gene Ontology Data from FastAPI Backend
-
 // Function to fetch SNP data from the API
 export async function fetchSNPData(snpID) {
     try {
-        // Sends a request to the backend API to retrieve SNP data
         const response = await fetch(`/api/search?snp=${snpID}`);
-        // Check if the response is valid
         if (!response.ok) {
-            throw new Error(`SNP ${snpID} not found`); // Throws error if SNP is not found
+            return { error: `SNP ${snpID} not found` };
         }
-        // Convert response to JSON format and return it
         return await response.json();
     } catch (error) {
-        console.error("Error fetching SNP data:", error); // Log any errors that occur
-        return null; // Return null in case of an error to prevent crashes
+        console.error("Error fetching SNP data:", error);
+        return { error: "Server error. Please try again later." };
     }
 }
 

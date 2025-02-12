@@ -13,46 +13,58 @@ let chartInstance = null;
 
 // Function to render a chart using Chart.js
 function renderChart(data) {
-    console.log("Rendering Chart with Data:", data); // Debugging log, to confirm data being used
-    // Get the canvas element where the chart will be drawn
-    const canvas = document.getElementById('snpChart');
-    // Check if the canvas element exists in the DOM
-    if (!canvas) {
-        console.error("Chart element not found!"); // Log an error if the canvas is missing
+    const ctx = document.getElementById("snpChart").getContext("2d");
+
+    if (chartInstance) {
+        chartInstance.destroy(); // Destroy previous chart
+    }
+
+    if (data.values.every(v => v === 0)) {
+        document.getElementById("chartSection").innerHTML = "<p>No selection statistics available.</p>";
         return;
     }
 
-    // Get the 2D drawing context for the canvas
-    const ctx = canvas.getContext('2d');
-
-    // Destroy existing chart before re-drawing, preventing overlapping or duplicate charts when re-rendering.
-    if (chartInstance) {
-        chartInstance.destroy(); // Clears previous chart instance
-    }
-
-    // Create and render a new bar chart using Chart.js
     chartInstance = new Chart(ctx, {
-        type: 'bar', // Specify the type of chart (bar chart)
+        type: "bar",
         data: {
-            labels: data.labels, // X-axis labels (e.g., SNP IDs)
+            labels: data.labels,
             datasets: [{
-                label: 'Selection Stats', // Legend label
-                data: data.values, // Y-axis values (e.g., Selection statistics)
-                // Bar and border looks, we can change later to match Z style.
-                backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                borderColor: 'rgba(54, 162, 235, 1)',
+                label: "Selection Stats",
+                data: data.values,
+                backgroundColor: "rgba(54, 162, 235, 0.5)",
+                borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true, // Ensures the chart resizes dynamically
+            responsive: true,
             scales: {
-                y: { beginAtZero: true } // Ensures Y-axis starts at 0
+                y: { beginAtZero: true }
             }
         }
     });
-
-    console.log("Chart Rendered Successfully!"); // Debugging log to confirm successful rendering
 }
+
+
+function updateChart(selectedPopulation) {
+    fetch(`/api/search?population=${selectedPopulation}`)
+    .then(response => {
+        if (!response.ok) throw new Error("Population data not found");
+        return response.json();
+    })
+    .then(data => {
+        if (data.length === 0) {
+            console.warn("No data for selected population");
+            return;
+        }
+        renderChart({
+            labels: data.map(s => s.snp_name),
+            values: data.map(s => s.statistic1)
+        });
+    })
+    .catch(error => console.error("Error fetching population data:", error));
+}
+
+
 // Export the renderChart function so it can be used in other modules
 export { renderChart };
