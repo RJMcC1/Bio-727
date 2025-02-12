@@ -100,60 +100,41 @@ def search_snp():
         return jsonify({"error": "No SNPs found"}), 404
 
     return jsonify([dict(row) for row in snp_data])
-
-# API Endpoint: Fetch Gene Ontology Information
-@app.route('/api/gene-ontology', methods=['GET'])
-def get_gene_ontology():
-    """
-    Fetches gene ontology information for a given gene name.
-    """
-    gene_name = request.args.get('gene') # Get gene name from query parameters
-    if not gene_name:
-        return jsonify({"error": "Missing gene name"}), 400 # Return error if no gene name provided
     
+# API Endpoint: Fetch Gene Ontology Information
+@app.route('/api/gene-ontology-page/<gene_name>', methods=['GET'])
+def gene_ontology_page(gene_name):
+    """
+    Fetches gene ontology information and renders a template with the data.
+    """
     conn = get_db_connection()
     if not conn:
-        return jsonify({"error": "Database connection failed"}), 500 # Return error if database fails to connect
+        return render_template('secondpage.html', gene_name=gene_name, function_term_id = None, ontology_term_id = None), 500
     
     cursor = conn.cursor()
 
-    # A SQL query to fetch gene ontology data
     query = """
         SELECT gene_name AS gene, functional_term AS function, ontology_term
         FROM gene
         WHERE gene_name = ?
     """
-    cursor.execute(query, (gene_name,)) # Execute query with the provided gene name
-    gene_data = cursor.fetchone()   # Fetch the first matching record
-    conn.close()    # Close the database connection
-    
-    if not gene_data:
-        return jsonify({"error": "Gene not found"}), 404    # Returns error if gene is not found
-    
-    return jsonify(dict(gene_data)) # Convert result to JSON and return
-
-@app.route('/api/gene-info', methods=['GET'])
-def get_gene_info():
-    gene_name = request.args.get('gene')
-    if not gene_name:
-        return jsonify({"error": "Gene name is required"}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    query = "SELECT gene_name, functional_term, ontology_term FROM gene WHERE gene_name LIKE ?"
-    cursor.execute(query, (f"%{gene_name}%",))
+    cursor.execute(query, (gene_name,))
     gene_data = cursor.fetchone()
     conn.close()
+    function_term = None
+    ontology_term = None
 
-    if not gene_data:
-        return jsonify({"error": "Gene not found"}), 404
 
-    return jsonify({
-    "gene": gene_data["gene"],
-    "function": gene_data["function"],
-    "ontology_term": gene_data["ontology_term"]
-})
+    if gene_data:
+        # If data is found, use the actual data
+        function_term = gene_data["function"]
+        ontology_term = gene_data["ontology_term"]
+    
+    return render_template('secondpage.html', 
+                           gene_name=gene_data["gene"] if gene_data else gene_name,
+                           function_term_id=function_term,
+                           ontology_term_id=ontology_term)
+
 
 # Runs the Flask Application
 if __name__ == '__main__':
