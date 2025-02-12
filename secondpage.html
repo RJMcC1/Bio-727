@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Gene Information </title>
+		<!-- Linking my CSS file -->
+		<link rel="stylesheet" href="/static/css/secondstyle.css"/>
+
+	</head>
+	<body>
+		<header>
+			<h1>Gene Information </h1>
+		</header>
+		<main>
+			<div class="terms-container">
+				<section class="gene-info">
+					<h2> Gene:</h2>
+					<p><strong>Selected gene: </strong><a href="{{ request.referrer }}" style='color: blue;'>{{ gene_name }}</a></p>
+				</section>
+			
+			
+
+				<section class = "functional-term">						
+					<!-- Paragraphs -->
+					<h2>Functional Term:</h2>
+					<p>{{ function_term_id }}</p>
+				</section>
+			
+				<section class = "ontology term">
+					<h2>Ontology Term:</h2>
+					<p>{{ ontology_term_id }}</p>
+					
+				</section>
+			</div>
+		</main>
+
+
+		<footer>
+			<p>&copy; 2025 T2D SNP Explorer</p>
+		</footer>
+	</body>
+	
+</html>
