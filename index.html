@@ -55,7 +55,20 @@
           </tr>
         </thead>
         <!-- Table body where results will be dynamically inserted -->
-        <tbody id="resultsBody"></tbody>
+        <tbody id="resultsBody">
+          {% for result in snp_results %}
+			      <tr>
+				      <td>{{ result.snp_id }}</td>
+				      <td>{{ result.start_position }}</td>
+				      <td>{{ result.p_value }} </td>
+				      <td>
+				        <a href="{{ url_for('gene_ontology_page', gene_name=result.gene_name) }}">{{ result.gene_name }}></a>
+				      </td>
+			      </tr>
+		      {% endfor %}
+        </tbody>
+          
+        </tbody>
       </table>
     </section>
 
