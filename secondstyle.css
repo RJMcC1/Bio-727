@@ -1,0 +1,87 @@
+/* Basic styling for layout */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f8f8f8;
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Set the height to 100% of the viewport */
+}
+
+header, footer {
+    background-color: #222;
+    color: #fff;
+    padding: 10px;
+}
+
+main {
+    padding: 20px;
+    flex-grow: 1; /* Allow the main content to grow and take available space */
+}
+
+h1, h2 {
+    margin: 0;
+    padding: 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: #fff;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+/* Additional styling in styles.css */
+button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 8px 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0069d9;
+}
+
+.terms-container {
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+    gap: 20px; /* Space between sections */
+    margin: 30px auto; /* Center the sections */
+    max-width: 600px; /* Keep the content readable */
+}
+
+section {
+    padding: 20px;
+    background-color: #f8f8f8; /* Light background for contrast */
+    border-radius: 8px; /* Rounded corners */
+    border: 1px solid #ccc; /* Simple border */
+}
+
+h2 {
+    margin-bottom: 10px; /* Space under headings */
+}
+
+p {
+    margin: 0; /* Remove extra space around paragraphs */
+}
+
+/* Footer */
+footer {
+    background-color: #222;
+    color: #fff;
+    text-align: left; /* Align the text to the left */
+    padding: 10px 20px; /* Add some padding to the left */
+    margin-top: auto; /* Push the footer to the bottom if content is small */
+    border-top: 1px solid #ddd; /* Same border size as previous */
+}
