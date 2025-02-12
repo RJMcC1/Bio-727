@@ -70,7 +70,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS snp_population_selection_stats (
 # ================================================================
 # Step 3: Create a Staging Table for the TSV Data ("variants")
 # ================================================================
-cursor.execute('''CREATE TABLE IF NOT EXISTS variants (
+cursor.execute('''CREATE TABLE IF NOT EXISTS associations (
     varId                TEXT,
     alignment            TEXT,
     alt                  TEXT,
@@ -113,40 +113,66 @@ print(df.head())
 
 # Insert the data into the variants table.
 # Using if_exists='replace' to ensure the staging table holds only the latest import.
-df.to_sql('variants', conn, if_exists='replace', index=False)
+df.to_sql('associations', conn, if_exists='replace', index=False)
 conn.commit()
 
 # ================================================================
-# Step 5: Merge the TSV Data with the Original snp Table
+# Step 1: Insert new genes if not already in the database
 # ================================================================
-# 1. Insert new SNPs from variants into the snp table if they don't already exist.
 cursor.execute('''
-    INSERT INTO snp (snp_name, chromosome, start_position, p_value)
-    SELECT v.varId, v.chromosome, v.position, v.pValue
-    FROM variants v
-    LEFT JOIN snp s ON s.snp_name = v.varId
-    WHERE s.snp_name IS NULL
+    INSERT OR IGNORE INTO gene (gene_name, functional_term)
+    SELECT DISTINCT nearest, consequence
+    FROM associations
+    WHERE nearest IS NOT NULL;
 ''')
 conn.commit()
 
-# 2. Update existing SNP records in the snp table with data from variants.
+# ================================================================
+# Step 2: Insert new SNPs if they don’t already exist
+# ================================================================
 cursor.execute('''
-    UPDATE snp
-    SET chromosome = (
-            SELECT v.chromosome FROM variants v
-            WHERE v.varId = snp.snp_name
-        ),
-        start_position = (
-            SELECT v.position FROM variants v
-            WHERE v.varId = snp.snp_name
-        ),
-        p_value = (
-            SELECT v.pValue FROM variants v
-            WHERE v.varId = snp.snp_name
-        )
-    WHERE snp.snp_name IN (SELECT varId FROM variants)
+    INSERT OR IGNORE INTO snp (snp_name, chromosome, start_position, end_position, p_value, mapped_gene_id)
+    SELECT associations.dbSNP, associations.chromosome, associations.clumpStart, associations.clumpEnd, associations.pValue, gene.gene_id
+    FROM associations
+    LEFT JOIN gene ON gene.gene_name = associations.nearest
+    LEFT JOIN snp ON snp.snp_name = associations.varId
+    WHERE snp.snp_name IS NULL;
 ''')
 conn.commit()
+
+# ================================================================
+# Step 3: Insert new populations if not already in the database
+# ================================================================
+cursor.execute('''
+    INSERT OR IGNORE INTO population (population_name)
+    SELECT DISTINCT ancestry FROM associations;
+''')
+conn.commit()
+
+# ================================================================
+# Step 4: Insert SNP-Population selection statistics
+# ================================================================
+cursor.execute('''
+    INSERT OR IGNORE INTO snp_population_selection_stats (snp_id, population_id, selection_statistic_1, selection_statistic_2)
+    SELECT snp.snp_id, population.population_id, associations.maf, associations.beta
+    FROM associations
+    JOIN snp ON snp.snp_name = associations.varId
+    JOIN population ON population.population_name = associations.ancestry;
+''')
+conn.commit()
+
+# Close connection
+conn.close()
+
+# ================================================================
+# Step 5: Preview the `snp` Table
+# ================================================================
+conn = sqlite3.connect(db_file_path)
+table_name = 'snp'
+df = pd.read_sql_query(f"SELECT * FROM {table_name} LIMIT 10", conn)
+print(f"Preview of table '{table_name}':")
+print(df)
+conn.close()
 
 # ================================================================
 # Step 6: Close the Database Connection
