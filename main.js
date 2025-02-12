@@ -90,6 +90,7 @@ document.getElementById("resultsTable").addEventListener("click", async (event) 
     if (event.target.classList.contains("gene-link")) {
         event.preventDefault();
         const geneName = event.target.dataset.gene;
+        window.location.href = `/api/gene-ontology-page/${geneName}`;
 
         try {
             const geneData = await fetchGeneOntology(geneName);
