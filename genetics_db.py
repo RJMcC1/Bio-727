@@ -180,8 +180,8 @@ conn.commit()
 # Step 8: Insert SNP-Population Selection Statistics
 # ================================================================
 cursor.execute('''
-    INSERT OR IGNORE INTO snp_population_selection_stats (snp_id, population_id, selection_statistic_1, selection_statistic_2)
-    SELECT s.snp_id, p.population_id, a.maf, a.beta 
+    INSERT OR IGNORE INTO snp_population_selection_stats (snp_id, population_id)
+    SELECT s.snp_id, p.population_id
     FROM associations a
     JOIN snp s ON s.snp_name = a.dbSNP
     JOIN population p ON p.population_name = a.ancestry
