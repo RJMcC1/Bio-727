@@ -5,80 +5,53 @@
   <meta charset="UTF-8" />
   <title>T2D SNP Explorer</title>
   <!-- Linking CSS file-->
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
   <!-- linked the Chart.js library for visualizing SNP data -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-  
   <header>
-    <h1>Welcome to T2D SNP Explorer</h1>
+    <h1>Welcome to Manic Minotaur's T2D SNP Explorer</h1>
   </header> 
 
   <main>
-    <!-- Section for searching SNPs -->
+    <!-- Section for searching -->
     <section id="searchSection">
       <h2>Search SNPs</h2>
-      <!-- Form to input SNP query -->
-      <form id="searchForm" onsubmit="return false;">
-        <!-- Text input type for entering the SNP identifier -->
-        <input type="text" id="snpInput" name="snpQuery" placeholder="Enter SNP data (e.g. rs12345)" />
-        <!-- Button to trigger search -->
+
+      <form id="searchForm">
+        <select id="searchType">
+          <option value="snp" selected>Search by SNP ID (rsID)</option>
+          <option value="coordinates">Search by Genomic Coordinates</option>
+          <option value="gene">Search by Gene Name</option>
+          <option value="population">Search by Population</option>
+        </select>        
+        <input type="text" id="snpInput" placeholder="Enter SNP ID (e.g. rs12345)" style="display: none;">
+        <input type="text" id="geneInput" placeholder="Enter Gene Name" style="display: none;">
+        <input type="text" id="populationInput" placeholder="Enter Associated Population (e.g. SA)" style="display: none;">
+        <div id="coordinateFields" style="display: none;">
+            <input type="text" id="chromosomeInput" placeholder="Chromosome">
+            <input type="text" id="startInput" placeholder="Start Position">
+            <input type="text" id="endInput" placeholder="End Position">
+        </div>
+        
         <button type="submit">Search</button>
-      </form>    
+      </form> 
     </section>
-    
-    <!-- Section where search results are displayed in table -->
-    <section id="resultsSection">
-      <h2>Results</h2>
-      <!-- Table structure (columns) for displaying search results -->
-      <table id="resultsTable">
-        <thead>
-          <tr>
-            <th>SNP</th> <!-- SNP identifier -->
-            <th>Position</th> <!-- Genomic position -->
-            <th>p-value</th> <!-- Statistical significance *NB: Currently n/a, why?--> 
-            <th>Gene</th> <!-- Associated gene *NB: Link just updates to index page, why?-->
-            <th>Selection Stats</th> <!-- evolutionary selection statistics *NB: nothing calculated yet, why?-->
-          </tr>
-        </thead>
-        <!-- Table body where results will be dynamically inserted -->
-        <tbody id="resultsBody">
-        </tbody>
-      </table>
-    </section>
-    
-    <!-- Section displaying additional gene information *NB: nothing linked yet -->
-    <section id="geneInfoSection">
-      <h2>Gene Ontology Information</h2>
-      <!-- Placeholder for gene details *NB: to be updated dynamically -->
-      <div id="geneInfo">
-          <p>Select a gene from the results table to view details.</p>
-      </div>
-  </section>
-    <!-- Section for displaying a selection statistics chart -->
-    <section id="chartSection">
-      <h2>Selection Statistics Chart</h2>
-      <!-- Canvas element where Chart.js will render the visualization -->
-      <canvas id="snpChart"></canvas>
-    </section>
-  
-  <!-- Buttons for downloading results in CSV or TXT format -->
-  <button id="downloadCSV">Download CSV</button>
-  <button id="downloadTXT">Download TXT</button>
-    
+   
+ 
   </main>
 
   <footer>
     <p>&copy; 2025 T2D SNP Explorer</p>
   </footer>
 
-<!-- Scripts to integrate js code, external JavaScript modules for functionality -->
-<script type="module" src="api.js"></script>
-<script type="module" src="charts.js"></script>
-<script type="module" src="ui.js"></script>
-<script type="module" src="main.js"></script>
+  <!-- Scripts to integrate js code, external JavaScript modules for functionality -->
+  <script type="module" src="/static/api.js"></script>
+  <script type="module" src="/static/charts.js"></script>
+  <script type="module" src="/static/ui.js"></script>
+  <script type="module" src="/static/main.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Gene Information - T2D SNP Explorer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Ontological Term(s) for Gene: <span id="geneName"></span></h1>
+        <script>
+            // Extract gene name from URL path (e.g., /gene/TCF7L2)
+            const geneName = window.location.pathname.split("/").pop();
+            document.getElementById("geneName").textContent = geneName || "Unknown";
+        </script>        
+    </header>
+
+    <main>
+        <section id="geneDetails">
+            <h2>Main Ontological Term: <span id="accessionID">Loading...</span></h2>
+            <p><strong>Accession ID:</strong> <span id="accessionID">Loading...</span></p>
+            <p><strong>Gene Definition / Functionality:</strong> <span id="geneDefinition">Loading...</span></p>
+            <p><strong>Synonyms:</strong> <span id="geneSynonyms">Loading...</span></p>
+        </section>
+
+        <section id="geneParents">
+            <h2>Parent Terms</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Accession ID</th>
+                        <th>Definition</th>
+                        <th>Synonyms</th>
+                    </tr>
+                </thead>
+                <tbody id="parentTermsTable">
+                    <!-- Parent terms dynamically inserted here -->
+                </tbody>
+            </table>
+        </section>
+
+        <section id="geneChildren">
+            <h2>Child Terms</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Accession ID</th>
+                        <th>Definition</th>
+                        <th>Synonyms</th>
+                    </tr>
+                </thead>
+                <tbody id="childTermsTable">
+                    <!-- Child terms dynamically inserted here -->
+                </tbody>
+            </table>
+        </section>
+
+        <button id="backToResults">Back to Results</button>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 T2D SNP Explorer</p>
+    </footer>
+
+    <script type="module" src="/static/ui.js"></script>
+    <script>
+        document.getElementById("backToResults").addEventListener("click", function () {
+            window.history.back();
+        });
+    </script>
+</body>
+
+</html>

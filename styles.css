@@ -3,39 +3,45 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     background-color: #f8f8f8;
-  }
+}
   
-  header, footer {
+header, footer {
     background-color: #222;
     color: #fff;
     padding: 10px;
-  }
+}
   
-  main {
+main {
     padding: 20px;
-  }
+}
   
   h1, h2 {
     margin: 0;
     padding: 0;
-  }
+}
   
   table {
     border-collapse: collapse;
     width: 100%;
     background-color: #fff;
-  }
+}
   
   th, td {
     border: 1px solid #ddd;
     padding: 8px;
-  }
+}
   
   th {
     background-color: #f2f2f2;
-  }
+}
   
+#searchSection {
+  display: block;  /* Ensure it's not set to none */
+}
 
+form {
+  display: block;  /* Ensure form is visible */
+}
 
   /* Additional styling in styles.css */
 button {
@@ -45,10 +51,11 @@ button {
     border: none;
     cursor: pointer;
     border-radius: 4px;
-  }
+}
+
   button:hover {
     background-color: #0069d9;
-  }
+}
   
 
 

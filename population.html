@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Population Information - T2D SNP Explorer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Population Information: <span id="populationName"></span></h1>
+        <script>
+            // Extract population name from URL path (e.g., /population/SA)
+            const populationName = window.location.pathname.split("/").pop();
+            document.getElementById("populationName").textContent = populationName || "Unknown";
+        </script>        
+    </header>
+
+    <main>
+        <section id="populationDetails">
+            <h2>Population Details</h2>
+            <p id="populationInfo">Loading population information...</p>
+        </section>
+
+        <section id="populationStatistics">
+            <h2>Summary Statistics of Positive Selection</h2>
+            <canvas id="selectionPlot"></canvas>
+        </section>
+
+        <button id="downloadData">Download Summary Statistics</button>
+        <button id="backToResults">Back to Results</button>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 T2D SNP Explorer</p>
+    </footer>
+
+    <script type="module" src="/static/ui.js"></script>
+    <script>
+        document.getElementById("backToResults").addEventListener("click", function () {
+            window.history.back();
+        });
+
+        document.getElementById("downloadData").addEventListener("click", function () {
+            const data = "Sample summary statistics\nMean: X.XX\nStd Dev: X.XX";
+            const blob = new Blob([data], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "summary_statistics.txt";
+            a.click();
+        });
+
+        const ctx = document.getElementById("selectionPlot").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: ["Region 1", "Region 2", "Region 3", "Region 4"],
+                datasets: [{
+                    label: "Positive Selection",
+                    data: [1.2, 2.5, 1.8, 2.1],
+                    borderColor: "blue",
+                    fill: false
+                }]
+            }
+        });
+    </script>
+</body>
+
+</html>
