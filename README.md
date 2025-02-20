@@ -1,4 +1,23 @@
 # Bio-727
+Current directory structure:
+.
+├── README.md
+├── app.py
+├── associations.tsv
+├── genetics.db.py
+├── static
+│   ├── api.js
+│   ├── charts.js
+│   ├── main.js
+│   ├── styles.css
+│   └── ui.js
+└── templates
+    ├── gene.html
+    ├── index.html
+    ├── population.html
+    └── results.html
+
+
 produce a functioning prototype of a web-based software tool for handling molecular biology data..
 
 MSC BIOINFORMATICS
