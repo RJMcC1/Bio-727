@@ -7,7 +7,7 @@ import json
 # ================================================================
 db_file_path = 'genetics.db'
 tsv_file_path = 'associations.tsv'  # Update to your TSV file path
-
+uniprot_path = 'uniprot_data.tsv'
 # ================================================================
 # Database Setup and Table Creation
 # ================================================================
@@ -73,6 +73,17 @@ def setup_database():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS uniprot_data (
+                 gene_name TEXT NOT NULL,
+                mapped_gene_id INTEGER,
+                uniprot_url TEXT,
+                  uniprot_id TEXT,    
+            FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
+        )
+    ''')
+    
+                   
     conn.commit()
     return conn
 
@@ -166,6 +177,10 @@ def process_allele_frequencies(conn):
             ''', (snp_id, pop_id, af_value))
     conn.commit()
 
+def process_uniprot(conn):
+    cursor = conn.cursor()
+    cursor.execute('''
+                   ''')
 # ================================================================
 # Main Execution
 # ================================================================
@@ -175,6 +190,10 @@ def main():
     # Import TSV data
     df = pd.read_csv(tsv_file_path, sep='\t')
     df.to_sql('associations', conn, if_exists='replace', index=False)
+    conn.commit()
+
+    uf = pd.read_csv(uniprot_path, sep = '\t')
+    uf.to_sql('uniprot', conn, if_exists= 'replace', index=False)
     conn.commit()
 
     # Process data
