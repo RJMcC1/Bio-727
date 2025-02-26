@@ -8,6 +8,7 @@ import json
 db_file_path = 'genetics.db'
 tsv_file_path = 'associations.tsv'  # Update to your TSV file path
 uniprot_path = 'uniprot_data.tsv'
+fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'
 # ================================================================
 # Database Setup and Table Creation
 # ================================================================
@@ -52,8 +53,6 @@ def setup_database():
             snp_id INTEGER NOT NULL,
             population_id INTEGER NOT NULL,
             allele_freq DECIMAL(10,6),
-            selection_statistic_1 DECIMAL(10,6),
-            selection_statistic_2 DECIMAL(10,6),
             PRIMARY KEY (snp_id, population_id),
             FOREIGN KEY (snp_id) REFERENCES snp (snp_id),
             FOREIGN KEY (population_id) REFERENCES population (population_id)
@@ -83,7 +82,41 @@ def setup_database():
         )
     ''')
     
-                   
+    cursor.execute(''' 
+        CREATE TABLE IF NOT EXISTS fst (
+        varId TEXT,
+    alignment TEXT,
+    alt TEXT,
+    ancestry TEXT,
+    beta DECIMAL(10,6),
+    CHROM TEXT,
+    clumpEnd INTEGER,
+    clumpStart INTEGER,
+    dataset TEXT,
+    inMetaTypes TEXT,
+    leadSNP TEXT,
+    n INTEGER,
+    pValue DECIMAL(10,6),
+    phenotype TEXT,
+    POS INTEGER,
+    posteriorProbability DECIMAL(10,6),
+    reference TEXT,
+    source TEXT,
+    stdErr DECIMAL(10,6),
+    clump TEXT,
+    dbSNP TEXT,
+    consequence TEXT,
+    nearest TEXT,
+    minorAllele TEXT,
+    maf DECIMAL(10,6),
+    af TEXT,
+    FST DECIMAL(10,6),
+    FOREIGN KEY (dbSNP) REFERENCES snp (snp_name)             
+    )
+    ''')
+
+
+               
     conn.commit()
     return conn
 
@@ -194,6 +227,10 @@ def main():
 
     uf = pd.read_csv(uniprot_path, sep = '\t')
     uf.to_sql('uniprot', conn, if_exists= 'replace', index=False)
+    conn.commit()
+
+    fst = pd.read_csv(fst_file_path, sep = ',')
+    fst.to_sql('fst', conn, if_exists='replace', index = False )
     conn.commit()
 
     # Process data
