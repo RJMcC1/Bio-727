@@ -1,0 +1,72 @@
+def load_gene_data(tsv_file):
+    gene_data = {}
+    try:
+        with open(tsv_file, mode='r') as file:
+            reader = csv.reader(file, delimiter='\t')
+            next(reader)  # Skip the header row
+            for row in reader:
+                gene_name, accession_id, link = row
+                gene_data[gene_name] = {
+                    "accession_id": accession_id,
+                    "link": link
+                }
+    except Exception as e:
+        print(f"Error reading the TSV file: {e}")
+    return gene_data
+
+# Load the gene data from the TSV file when the app starts
+gene_data = load_gene_data('genes_info.tsv')
+
+@app.route("/gene/<gene_name>")
+def gene_page(gene_name):
+    """Serve the gene details page with both TSV and UniProt API data"""
+    
+    
+    tsv_gene_data = gene_data.get(gene_name)
+    
+    
+    uniprot_api_url = f"https://rest.uniprot.org/uniprotkb/search?query=gene:{gene_name}+AND+organism_id:9606&format=json"
+    
+    try:
+        response = requests.get(uniprot_api_url)
+        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
+        data = response.json()
+
+        # Extract the top result from UniProt (if any)
+        if not data.get("results"):
+            uniprot_data = None
+        else:
+            entry = data["results"][0]
+
+            
+            function_text = "N/A"
+            for comment in entry.get("comments", []):
+                if comment.get("commentType") == "FUNCTION":
+                    function_text = comment.get("texts", [{}])[0].get("value", "N/A")
+                    break
+
+            
+            synonyms = []
+            if "genes" in entry:
+                for gene_info in entry["genes"]:
+                    if "synonyms" in gene_info:
+                        synonyms.extend(synonym["value"] for synonym in gene_info["synonyms"])
+
+            uniprot_data = {
+                "accession": entry.get("primaryAccession", "N/A"),
+                "function": function_text,
+                "synonyms": synonyms if synonyms else ["N/A"],  # Handle missing synonyms
+                "gene_name": gene_name
+            }
+    except requests.exceptions.RequestException as e:
+        print(f"UniProt API error: {e}")
+        uniprot_data = None
+    
+    # Prepare the data for rendering in the template
+    context = {
+        "gene_name": gene_name,
+        "tsv_gene_data": tsv_gene_data,
+        "uniprot_data": uniprot_data,
+    }
+
+    return render_template("gene.html", **context)
