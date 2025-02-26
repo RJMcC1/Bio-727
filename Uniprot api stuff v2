@@ -14,7 +14,7 @@ def load_gene_data(tsv_file):
         print(f"Error reading the TSV file: {e}")
     return gene_data
 
-# Load the gene data from the TSV file when the app starts
+
 gene_data = load_gene_data('genes_info.tsv')
 
 @app.route("/gene/<gene_name>")
@@ -32,7 +32,7 @@ def gene_page(gene_name):
         response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
         data = response.json()
 
-        # Extract the top result from UniProt (if any)
+      
         if not data.get("results"):
             uniprot_data = None
         else:
@@ -62,7 +62,7 @@ def gene_page(gene_name):
         print(f"UniProt API error: {e}")
         uniprot_data = None
     
-    # Prepare the data for rendering in the template
+    
     context = {
         "gene_name": gene_name,
         "tsv_gene_data": tsv_gene_data,
