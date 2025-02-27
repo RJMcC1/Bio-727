@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Gene Information - T2D SNP Explorer</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>Gene Information for: <span id="geneName">{{ gene_name }}</span></h1>
+    </header>
+
+    <main>
+        <!-- Gene Name -->
+        <section id="geneDetails">
+            <h2>Gene Details</h2>
+            <p><strong>Gene Name:</strong> {{ gene_name }}</p>
+        </section>
+
+        <!-- UniProt Data -->
+        <section id="uniprotDetails">
+            <h2>UniProt Information</h2>
+            {% if uniprot_data %}
+                <p><strong>Accession ID:</strong> {{ uniprot_data.accession }}</p>
+                <p><strong>Gene Function:</strong> {{ uniprot_data.function }}</p>
+                <p><strong>Synonyms:</strong> 
+                    {% if uniprot_data.synonyms %}
+                        {{ uniprot_data.synonyms | join(", ") }}
+                    {% else %}
+                        No synonyms available.
+                    {% endif %}
+                </p>
+            {% else %}
+                <p>No UniProt data available.</p>
+            {% endif %}
+        </section>
+
+        <button id="backToResults">Back to Results</button>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 T2D SNP Explorer</p>
+    </footer>
+
+    <script>
+        document.getElementById("backToResults").addEventListener("click", function () {
+            window.history.back();
+        });
+    </script>
+</body>
+
+</html>
