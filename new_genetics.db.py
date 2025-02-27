@@ -257,7 +257,15 @@ image_path = 'download.png'
 with open(image_path, 'rb') as file:
 	image_data = file.read()
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS images (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image BLOB NOT NULL) ''')
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    image BLOB NOT NULL,
+    population TEXT NOT NULL DEFAULT 'SA' CHECK(population = 'SA'),
+    FOREIGN KEY (population) REFERENCES population (population_name)
+)
+''')
 
 cursor.execute('''INSERT INTO images (name, image) VALUES (?,?) ''', ('download.png',image_data))
 
@@ -266,4 +274,3 @@ conn.commit()
 conn.close()
 
 print("image inserted successfully!")
-
