@@ -9,6 +9,8 @@ db_file_path = 'genetics.db'
 tsv_file_path = 'associations.tsv'  # Update to your TSV file path
 uniprot_path = 'uniprot_data.tsv'
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'
+fsthistogram = 'download.png'
+
 # ================================================================
 # Database Setup and Table Creation
 # ================================================================
@@ -115,6 +117,13 @@ def setup_database():
     )
     ''')
 
+    cursor.execute('''
+                   CREATE TABLE IF NOT EXISTS  images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    image BLOB NOT NULL)
+    ''')
+
 
                
     conn.commit()
@@ -210,6 +219,20 @@ def process_allele_frequencies(conn):
             ''', (snp_id, pop_id, af_value))
     conn.commit()
 
+
+# Read the image file as binary data
+with open(fsthistogram, 'rb') as file:
+    image_data = file.read()
+
+# Insert the image into the table
+def process_allele_frequencies(conn):
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO images (name, image)
+    VALUES (?, ?)
+''', ('download.png', image_data))
+    conn.commit()
+
 def process_uniprot(conn):
     cursor = conn.cursor()
     cursor.execute('''
@@ -232,6 +255,7 @@ def main():
     fst = pd.read_csv(fst_file_path, sep = ',')
     fst.to_sql('fst', conn, if_exists='replace', index = False )
     conn.commit()
+
 
     # Process data
     process_populations(conn)
