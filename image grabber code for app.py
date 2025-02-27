@@ -1,3 +1,5 @@
+import base64
+
 @app.route("/population/<population_name>")
 def population_page(population_name):
     """Serve the population details page with image and information."""
