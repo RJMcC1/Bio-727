@@ -9,6 +9,8 @@ db_file_path = 'genetics.db'
 tsv_file_path = 'associations.tsv'  # Update to your TSV file path
 uniprot_path = 'uniprot_data.tsv'
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'
+details_glb= 'Populationdetails.tsv'
+subpopuplation ='sub_population.tsv'
 # ================================================================
 # Database Setup and Table Creation
 # ================================================================
@@ -25,15 +27,14 @@ def setup_database():
             UNIQUE(gene_name, functional_term)
         )
     ''')
-
-
+    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS population (
             population_id INTEGER PRIMARY KEY AUTOINCREMENT,
             population_name TEXT NOT NULL UNIQUE
         )
     ''')
-
+    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS snp (
             snp_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +47,18 @@ def setup_database():
             FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
         )
     ''')
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS population_glb (
+        detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        population_name TEXT NOT NULL,
+        geographical_sampling_locations TEXT NOT NULL,
+        genetic_diversity TEXT NOT NULL,
+        disease_trait_associations TEXT NOT NULL,
+        FOREIGN KEY (population_name) REFERENCES population (population_name) 
+    )
+''')
+
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS snp_population_selection_stats (
@@ -113,20 +126,21 @@ def setup_database():
     FOREIGN KEY (dbSNP) REFERENCES snp (snp_name)             
     )
     ''')
+
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS populations_details (
-        population_name TEXT,
-        sub_population TEXT,
-        detail_population TEXT,
-        PRIMARY KEY (population_name, sub_population),
-        FOREIGN KEY (population_name) REFERENCES population (population_name)
+    CREATE TABLE IF NOT EXISTS sub_population_details (
+        population TEXT ,
+        sub_population TEXT ,
+        genetic_diversity TEXT ,
+        disease_trait_associations TEXT ,
+        PRIMARY KEY (population, sub_population),
+        FOREIGN KEY (population) REFERENCES population (population_name)
     )
-''')
-
-
-               
+''')           
+    
     conn.commit()
     return conn
+print (1)
 
 # ================================================================
 # Data Processing Functions
@@ -222,7 +236,7 @@ def process_uniprot(conn):
     cursor = conn.cursor()
     cursor.execute('''
                    ''')
-
+print(2)
 
 # ================================================================
 # Main Execution
@@ -234,14 +248,27 @@ def main():
     df = pd.read_csv(tsv_file_path, sep='\t')
     df.to_sql('associations', conn, if_exists='replace', index=False)
     conn.commit()
+    print(5)
 
     uf = pd.read_csv(uniprot_path, sep = '\t')
     uf.to_sql('uniprot', conn, if_exists= 'replace', index=False)
     conn.commit()
 
+    glb = pd.read_csv(details_glb, sep = '\t')
+    glb.to_sql('population_glb', conn, if_exists= 'replace', index=False)
+    conn.commit()
+
     fst = pd.read_csv(fst_file_path, sep = ',')
     fst.to_sql('fst', conn, if_exists='replace', index = False )
     conn.commit()
+
+    print(3)
+
+
+    sub = pd.read_csv(subpopuplation, sep = '\t')
+    sub.to_sql('sub_population_details', conn, if_exists='replace', index = False )
+    conn.commit()
+    print(4)
 
     # Process data
     process_populations(conn)
@@ -252,75 +279,5 @@ def main():
     conn.close()
     print("Database population completed successfully!")
 
-
 if __name__ == "__main__":
     main()
-
-db_file_path= 'genetics.db'
-conn = sqlite3.connect(db_file_path)
-cursor = conn.cursor()
-
-image_path = 'download.png'
-
-with open(image_path, 'rb') as file:
-	image_data = file.read()
-
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS images (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    image BLOB NOT NULL,
-    population TEXT NOT NULL DEFAULT 'SA' CHECK(population = 'SA'),
-    FOREIGN KEY (population) REFERENCES population (population_name)
-)
-''')
-
-cursor.execute('''INSERT INTO images (name, image) VALUES (?,?) ''', ('download.png',image_data))
-
-conn.commit()
-
-# Function to insert data
-def population_detail(conn):
-    if conn is None:
-        raise ValueError("Database connection is not provided.")
-    
-    cursor = conn.cursor()
-    
-    # Insert the main population 'SA' into the population table
-    cursor.execute("INSERT OR IGNORE INTO population (population_name) VALUES ('SA')")
-
-    
-    # Insert sub-populations into the populations_details table
-    sub_populations = [
-        ('SA', 'British in England and Scotland'),
-        ('SA', 'Gujrari Indians in Houston')
-    ]
-    
-    cursor.executemany('''
-        INSERT OR IGNORE INTO populations_details (population_name, sub_population)
-        VALUES (?, ?)
-    ''', sub_populations)
-    print("Inserted sub-populations into populations_details table")
-    
-    # Commit the changes
-    conn.commit()
-
-
-
-# Call the function to insert data
-population_detail(conn)
-
-# Fetch data from the populations_details table
-cursor = conn.cursor()
-cursor.execute("SELECT * FROM populations_details")
-rows = cursor.fetchall()
-
-# Display the rows
-print("Data in populations_details table:")
-for row in rows:
-    print(row)
-
-# Close the connection
-conn.close()
-
-conn.close()
