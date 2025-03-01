@@ -30,8 +30,7 @@ def setup_database():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS population (
             population_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            population_name TEXT NOT NULL UNIQUE,
-            sampling_location TEXT
+            population_name TEXT NOT NULL UNIQUE
         )
     ''')
 
@@ -114,6 +113,15 @@ def setup_database():
     FOREIGN KEY (dbSNP) REFERENCES snp (snp_name)             
     )
     ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS populations_details (
+        population_name TEXT,
+        sub_population TEXT,
+        detail_population TEXT,
+        PRIMARY KEY (population_name, sub_population),
+        FOREIGN KEY (population_name) REFERENCES population (population_name)
+    )
+''')
 
 
                
@@ -271,6 +279,48 @@ cursor.execute('''INSERT INTO images (name, image) VALUES (?,?) ''', ('download.
 
 conn.commit()
 
+# Function to insert data
+def population_detail(conn):
+    if conn is None:
+        raise ValueError("Database connection is not provided.")
+    
+    cursor = conn.cursor()
+    
+    # Insert the main population 'SA' into the population table
+    cursor.execute("INSERT OR IGNORE INTO population (population_name) VALUES ('SA')")
+
+    
+    # Insert sub-populations into the populations_details table
+    sub_populations = [
+        ('SA', 'British in England and Scotland'),
+        ('SA', 'Gujrari Indians in Houston')
+    ]
+    
+    cursor.executemany('''
+        INSERT OR IGNORE INTO populations_details (population_name, sub_population)
+        VALUES (?, ?)
+    ''', sub_populations)
+    print("Inserted sub-populations into populations_details table")
+    
+    # Commit the changes
+    conn.commit()
+
+
+
+# Call the function to insert data
+population_detail(conn)
+
+# Fetch data from the populations_details table
+cursor = conn.cursor()
+cursor.execute("SELECT * FROM populations_details")
+rows = cursor.fetchall()
+
+# Display the rows
+print("Data in populations_details table:")
+for row in rows:
+    print(row)
+
+# Close the connection
 conn.close()
 
-print("image inserted successfully!")
+conn.close()
