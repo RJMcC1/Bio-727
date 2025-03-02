@@ -13,6 +13,7 @@ tsv_file_path = 'associations.tsv'  # Update to your TSV file path
 uniprot_path = 'uniprot_data.tsv' # Gene function data from UniProt (TSV)
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'    # Population-based FST data (CSV)
 subpopulation ='subpopulation_details.tsv'
+details_glb= 'population_details.tsv'
 
 # ================================================================
 # Database Setup and Table Creation
