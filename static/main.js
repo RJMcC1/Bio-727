@@ -114,28 +114,28 @@ function cleanGeneName(geneName) {
 }
 
 
-// Function to display results in the table
-function displayResults(results) {
-    const tableBody = document.getElementById("resultsTableBody");
+// // Function to display results in the table
+// function displayResults(results) {
+//     const tableBody = document.getElementById("resultsTableBody");
     
-    if (!tableBody) {
-        console.error("Results table body not found!");
-        return;
-    }
+//     if (!tableBody) {
+//         console.error("Results table body not found!");
+//         return;
+//     }
 
-    tableBody.innerHTML = ""; // Clear previous results
+//     tableBody.innerHTML = ""; // Clear previous results
     
-    results.forEach(result => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${result[0]}</td>
-            <td>${result[1]}</td>
-            <td>${result[2]}</td>
-            <td>${result[3]}</td>
-            <td><a href="/gene/${cleanGeneName(result[4])}">${cleanGeneName(result[4])}</a></td>
-            <td>${result[5]}</td>
-            <td><a href="/population?population=${encodeURIComponent(result[6])}">${result[6]}</a></td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
+//     results.forEach(result => {
+//         const row = document.createElement("tr");
+//         row.innerHTML = `
+//             <td>${result[0]}</td>
+//             <td>${result[1]}</td>
+//             <td>${result[2]}</td>
+//             <td>${result[3]}</td>
+//             <td><a href="/gene/${cleanGeneName(result[4])}">${cleanGeneName(result[4])}</a></td>
+//             <td>${result[5]}</td>
+//             <td><a href="/population?population=${encodeURIComponent(result[6])}">${result[6]}</a></td>
+//         `;
+//         tableBody.appendChild(row);
+//     });
+// }

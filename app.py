@@ -45,7 +45,7 @@ def search():
             snp.end_position, 
             gene.gene_name, 
             snp.p_value, 
-            population.population_name 
+            population.population_abv
         FROM snp 
         LEFT JOIN gene ON snp.mapped_gene_id = gene.gene_id 
         LEFT JOIN snp_population_selection_stats ON snp.snp_id = snp_population_selection_stats.snp_id 
@@ -77,15 +77,17 @@ def search():
             results = query_database(query, (chr_val, int(start_pos), int(end_pos)))
         except (ValueError, AttributeError):
             results = []
-    
+
     # Search by gene name: Finds SNPs associated with a given gene
     elif search_type == "gene":
-        query = base_query + "WHERE gene.gene_name = ?"
-        results = query_database(query, (query_value,))
+    # Format the query value to match how it's stored in the database
+        formatted_query = f'["{query_value}"]'
+        query = base_query + "WHERE gene.gene_name = ? OR gene.gene_name = ?"
+        results = query_database(query, (query_value, formatted_query))
         
     # Search by population: Finds SNPs observed in a specific population.
     elif search_type == "population":
-        query = base_query + "WHERE population.population_name = ?"
+        query = base_query + "WHERE population.population_abv = ?"
         results = query_database(query, (query_value,))
     
     # Converts the query results into JSON format and sends it as a response.
@@ -160,19 +162,19 @@ def gene_page(gene_name):
 
 # Population Details Page: 
 
-@app.route("/population/<population_name>")
-def population_page(population_name):
+@app.route("/population/<population_abv>")
+def population_page(population_abv):
     """Fetch population details from SQL tables and render them on the population page."""
 
     # Query main population details
     population_results = query_database(
     """
-    SELECT population_glb.population_name, population_glb.geographical_sampling_locations, 
-           population_glb.genetic_diversity, population_glb.disease_trait_associations
-    FROM population_glb
-    WHERE population_glb.population_name = ?
+    SELECT population.population_abv, population.geographical_sampling_locations, 
+           population.genetic_diversity, population.disease_trait_associations
+    FROM population
+    WHERE population.population_abv = ?
     """,
-    (population_name,))
+    (population_abv,))
 
 
     # Query sub-population details
@@ -180,13 +182,13 @@ def population_page(population_name):
         SELECT sub_population, genetic_diversity, disease_trait_associations 
         FROM sub_population_details 
         WHERE population = ?
-    """, (population_name,))
+    """, (population_abv,))
 
     # Format main population data
     if population_results:
-        pop_name, geo_sampling, genetic_div, disease_traits = population_results[0]
+        population_abv, geo_sampling, genetic_div, disease_traits = population_results[0]
         population_info = {
-            "population_name": pop_name,
+            "population_abv": population_abv,
             "geographical_sampling": geo_sampling,
             "genetic_diversity": genetic_div,
             "disease_traits": disease_traits
@@ -206,7 +208,7 @@ def population_page(population_name):
 
     return render_template(
         "population.html",
-        population_name=population_name,
+        population_abv=population_abv,
         population_info=population_info,
         sub_populations=sub_populations
     )
@@ -223,14 +225,14 @@ def gene_details(gene_name):
     """, (gene_name,))
     return jsonify(results)
 
-@app.route("/api/population/<population_name>")
-def population_details(population_name):
+@app.route("/api/population/<population_abv>")
+def population_details(population_abv):
     """API endpoint for getting population details"""
     results = query_database("""
-        SELECT population_name, sampling_location 
+        SELECT population_abv, sampling_location 
         FROM population 
-        WHERE population_name = ?
-    """, (population_name,))
+        WHERE population_abv = ?
+    """, (population_abv,))
     return jsonify(results)
 
 # Runs the Flask app in debug mode.

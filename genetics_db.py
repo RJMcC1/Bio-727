@@ -41,8 +41,11 @@ def setup_database():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS population (
             population_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            population_abv TEXT NOT NULL UNIQUE,
             population_name TEXT NOT NULL UNIQUE,
-            sampling_location TEXT
+            geographical_sampling_locations TEXT,
+            genetic_diversity TEXT,
+            disease_trait_associations TEXT
         )
     ''')
     # SNP table: Stores SNP information (snp_name, chromosome, position, etc.). Links SNPs to genes using mapped_gene_id.
@@ -87,7 +90,7 @@ def setup_database():
                 gene_name TEXT NOT NULL,
                 mapped_gene_id INTEGER,
                 uniprot_url TEXT,
-                uniprot_id TEXT,    
+                uniprot_id TEXT
             FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
         )
     ''')
@@ -157,24 +160,62 @@ print (1)
 # Extract Unique Population Names from associations
 def process_populations(conn):
     cursor = conn.cursor()
+    
     # Extract unique population names from associations' JSON 'af' column
     cursor.execute("SELECT af FROM associations WHERE af IS NOT NULL AND af != ''")
     af_records = cursor.fetchall()
-
-    population_names = set()
+    population_abvs = set()
+    
     for (af_json_str,) in af_records:
         try:
             af_dict = json.loads(af_json_str.replace("'", "\""))
-            population_names.update(af_dict.keys())
+            population_abvs.update(af_dict.keys())
         except (json.JSONDecodeError, AttributeError) as e:
             print(f"Error parsing JSON: {e}")
             continue
-    # Inserts populations into population table.
-    for pop_name in population_names:
-        cursor.execute('''
-            INSERT OR IGNORE INTO population (population_name)
-            VALUES (?)
-        ''', (pop_name,))
+    
+    # Define population data mapping (abbreviation to full data)
+    population_data = {
+        "SA": ("SA (South Asian)", 
+               "India, Pakistan, Bangladesh, Sri Lanka, Nepal", 
+               "High genetic diversity due to caste endogamy and historical migrations. Distinct genetic signatures compared to East Asian and European populations.", 
+               "Higher risk for coronary artery disease (due to Lp(a) levels). Increased prevalence of type 2 diabetes due to genetic and dietary factors."),
+        "EU": ("EU (European Ancestry)", 
+               "Western Europe (i.e. UK, Germany, France, Spain), Eastern Europe (i.e. Russia, Poland, Ukraine), Southern Europe (i.e. Italy, Greece)", 
+               "Moderate genetic diversity due to ancient migrations and population mixing. Neolithic, Indo-European, and Viking ancestry influence different regions.", 
+               "High prevalence of lactose persistence (LCT gene variant). Increased risk for Alzheimer's (APOE-ε4 allele) and type 1 diabetes."),
+        "AA": ("AA (African American or Afro-Caribbean)", 
+               "United States (Southeastern regions, Midwest, Northeast, etc.), Caribbean Islands (Haiti, Jamaica, Dominican Republic, etc.), Some samples from Brazil and other Latin American regions", 
+               "High genetic diversity due to the transatlantic slave trade. Primarily West African ancestry, with varying degrees of European and Indigenous American admixture.", 
+               "Increased risk for hypertension and type 2 diabetes due to genetic and environmental factors. Higher prevalence of sickle cell trait (HbS allele)."),
+        "HS": ("HS (Hispanic)", 
+               "Mexico, Central America, South America, Caribbean (Puerto Rico, Cuba, Dominican Republic)", 
+               "Highly admixed: Indigenous American, European, African. Varies by region (e.g., higher Indigenous ancestry in Mexico, higher African ancestry in the Caribbean).", 
+               "Higher prevalence of type 2 diabetes linked to Indigenous ancestry. Certain genetic variants associated with obesity and metabolic syndrome."),
+        "EA": ("EA (East Asian or Latin American)", 
+               "China, Japan, Korea, Mongolia, Vietnam, Thailand", 
+               "Low to moderate genetic diversity due to strong population bottlenecks. Close genetic relation among East Asian populations with distinct subgroups (e.g., Han Chinese vs. Japanese).", 
+               "Higher prevalence of lactose intolerance (MCM6 gene). Increased risk for esophageal and stomach cancer due to genetic predisposition.")
+    }
+    
+    # Insert complete population data for each unique population abbreviation
+    for pop_abv in population_abvs:
+        if pop_abv in population_data:
+            full_data = population_data[pop_abv]
+            cursor.execute('''
+                INSERT OR IGNORE INTO population 
+                (population_abv, population_name, geographical_sampling_locations, genetic_diversity, disease_trait_associations)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (pop_abv, full_data[0], full_data[1], full_data[2], full_data[3]))
+        else:
+            # For unknown populations, just insert the abbreviation
+            print(f"Warning: No detailed data available for population {pop_abv}")
+            cursor.execute('''
+                INSERT OR IGNORE INTO population 
+                (population_abv, population_name)
+                VALUES (?, ?)
+            ''', (pop_abv, f"Unknown Population ({pop_abv})"))
+    
     conn.commit()
 
 # Process Gene Data: Extracts the gene names & functional terms from associations.
@@ -266,9 +307,9 @@ def main():
     uf.to_sql('uniprot', conn, if_exists= 'replace', index=False)
     conn.commit()
 
-    glb = pd.read_csv(details_glb, sep = '\t')
-    glb.to_sql('population_glb', conn, if_exists= 'replace', index=False)
-    conn.commit()
+    # glb = pd.read_csv(details_glb, sep = '\t')
+    # glb.to_sql('population_glb', conn, if_exists= 'replace', index=False)
+    # conn.commit()
 
     fst = pd.read_csv(fst_file_path, sep = ',')
     fst.to_sql('fst', conn, if_exists='replace', index = False )

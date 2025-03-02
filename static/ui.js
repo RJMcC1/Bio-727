@@ -14,35 +14,63 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// Helper function to clean gene names
+function cleanGeneName(geneName) {
+    // If it's null or undefined, return empty string
+    if (!geneName) return "";
+    
+    // If it's already an array, return the first element
+    if (Array.isArray(geneName)) {
+      return geneName[0];
+    }
+    
+    // If it's a string representation of a JSON array like ["HHEX"]
+    if (typeof geneName === 'string') {
+      // Check if it matches the pattern ["something"]
+      const match = geneName.match(/^\["(.+)"\]$/);
+      if (match) {
+        return match[1]; // Return the part inside the quotes
+      }
+      
+      // Try to parse it as JSON if it looks like JSON
+      if (geneName.startsWith('[') && geneName.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(geneName);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed[0];
+          }
+        } catch (e) {
+          // If parsing fails, continue with other methods
+        }
+      }
+    }
+    
+    // If nothing else worked, return the original
+    return geneName;
+  }
+
 // Handle search form submission
 document.getElementById("searchForm")?.addEventListener("submit", async function(event) {
     event.preventDefault();
-    
     const searchType = document.getElementById("searchType").value;
     let query;
     
     if (searchType === "snp") {
-        query = document.getElementById("snpInput").value;
+      query = document.getElementById("snpInput").value;
     } else if (searchType === "gene") {
-        query = document.getElementById("geneInput").value;
+      const rawInput = document.getElementById("geneInput").value.trim();
+      
+      // Format for database search
+      query = `["${rawInput}"]`;  // Format as expected by the database
     } else if (searchType === "population") {
-        query = document.getElementById("populationInput").value;
+      query = document.getElementById("populationInput").value;
     }
     
     if (!query) return;
     
     const results = await fetchSearchResults(searchType, query);
     displayResults(results);
-});
-
-// Helper function to clean gene names
-function cleanGeneName(geneName) {
-    if (Array.isArray(geneName)) {
-        return geneName[0];  // Extract first element if it's an array
-    }
-    return geneName.replace(/^\["|"\]$/g, "");  // Remove brackets and quotes
-}
-
+  });
 
 // Display search results function
 function displayResults(results) {
