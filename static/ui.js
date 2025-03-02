@@ -62,6 +62,19 @@ function displayResults(results) {
         return;
     }
 
+    // Add event listeners to gene links after appending rows
+  tableBody.querySelectorAll('a[href^="/gene/"]').forEach(link => {
+    link.addEventListener('click', async function(event) {
+      event.preventDefault();
+      const geneId = decodeURIComponent(this.getAttribute('href').replace('/gene/', ''));
+      const geneDetails = await fetchGeneDetails(geneId);
+      // Now display these details somewhere
+      displayGeneDetails(geneDetails);
+    });
+  });
+
+  console.log(results.map((result => result[4])));
+
     results.forEach(result => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -69,7 +82,7 @@ function displayResults(results) {
             <td>${result[1]}</td>
             <td>${result[2]}</td>
             <td>${result[3]}</td>
-            <td><a href="/gene/${encodeURIComponent(result[4])}">${result[4]}</a></td>
+            <td><a href="/gene/${encodeURIComponent(cleanGeneName(result[4]))}">${cleanGeneName(result[4])}</a></td>
             <td>${result[5]}</td>
             <td><a href="/population/${encodeURIComponent(result[6])}">${result[6]}</a></td>
         `;
