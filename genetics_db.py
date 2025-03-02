@@ -12,7 +12,6 @@ db_file_path = 'genetics.db'    # SQLite database file
 tsv_file_path = 'associations.tsv'  # Update to your TSV file path
 uniprot_path = 'uniprot_data.tsv' # Gene function data from UniProt (TSV)
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'    # Population-based FST data (CSV)
-details_glb= 'population_details.tsv'
 subpopulation ='subpopulation_details.tsv'
 
 # ================================================================
@@ -90,7 +89,7 @@ def setup_database():
                 gene_name TEXT NOT NULL,
                 mapped_gene_id INTEGER,
                 uniprot_url TEXT,
-                uniprot_id TEXT
+                uniprot_id TEXT,
             FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
         )
     ''')
@@ -306,10 +305,6 @@ def main():
     uf = pd.read_csv(uniprot_path, sep = '\t')
     uf.to_sql('uniprot', conn, if_exists= 'replace', index=False)
     conn.commit()
-
-    # glb = pd.read_csv(details_glb, sep = '\t')
-    # glb.to_sql('population_glb', conn, if_exists= 'replace', index=False)
-    # conn.commit()
 
     fst = pd.read_csv(fst_file_path, sep = ',')
     fst.to_sql('fst', conn, if_exists='replace', index = False )
