@@ -1,5 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
+import csv
+import requests
+import base64
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import pandas as pd
+from bokeh.embed import components
+from bokeh.plotting import figure, output_file, save
+from bokeh.resources import CDN
+from bokeh.embed import file_html
+from bokeh.models import ColumnDataSource, FactorRange
+from bokeh.palettes import Category10
+import matplotlib
+matplotlib.use('Agg')
 
 app = Flask(__name__, static_folder="static")
 
@@ -76,27 +91,68 @@ def search():
 def results():
     return render_template("results.html")
 
+
+def query_database(query, params=()):
+    """Helper function to query the SQLite database."""
+    conn = sqlite3.connect("genetics.db")
+    cursor = conn.cursor()
+    cursor.execute(query, params)
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
 @app.route("/gene/<gene_name>")
 def gene_page(gene_name):
-    """Serve the gene details page"""
-    results = query_database("""
-        SELECT gene_name, functional_term, ontology_term 
-        FROM gene 
-        WHERE gene_name = ?
-    """, (gene_name,))
+    """Serve the gene details page with database and UniProt API data."""
+    # Query the database for gene details
+    db_results = query_database(
+        """
+        SELECT u.uniprot_id, u.uniprot_url, g.functional_term 
+        FROM uniprot_data u
+        JOIN gene g ON u.mapped_gene_id = g.gene_id
+        WHERE u.gene_name = ?
+        """,
+        (gene_name,)
+    )
     
-    return render_template("gene.html", gene_name=gene_name)
+    if db_results:
+        uniprot_id, uniprot_url, functional_term = db_results[0]
+        db_data = {
+            "uniprot_id": uniprot_id,
+            "uniprot_url": uniprot_url,
+            "function": functional_term,
+        }
+    else:
+        db_data = None
+    
+    # Fetch data from UniProt API if not found in DB
+    uniprot_data = None
+    if not db_data:
+        uniprot_api_url = f"https://rest.uniprot.org/uniprotkb/search?query=gene:{gene_name}+AND+organism_id:9606&format=json"
+        try:
+            response = requests.get(uniprot_api_url)
+            response.raise_for_status()
+            data = response.json()
 
-@app.route("/population/<population_name>")
-def population_page(population_name):
-    """Serve the population details page"""
-    results = query_database("""
-        SELECT population_name, sampling_location 
-        FROM population 
-        WHERE population_name = ?
-    """, (population_name,))
+            if data.get("results"):
+                entry = data["results"][0]
+                function_text = next(
+                    (comment.get("texts", [{}])[0].get("value", "N/A")
+                     for comment in entry.get("comments", []) if comment.get("commentType") == "FUNCTION"),
+                    "N/A"
+                )
+                synonyms = [synonym["value"] for gene in entry.get("genes", []) for synonym in gene.get("synonyms", [])]
+
+                uniprot_data = {
+                    "accession": entry.get("primaryAccession", "N/A"),
+                    "function": function_text,
+                    "synonyms": synonyms if synonyms else ["N/A"],
+                    "gene_name": gene_name,
+                }
+        except requests.exceptions.RequestException as e:
+            print(f"UniProt API error: {e}")
     
-    return render_template("population.html", population_name=population_name)
+    return render_template("gene.html", gene_name=gene_name, db_data=db_data, uniprot_data=uniprot_data)
 
 # API endpoints for fetching data
 @app.route("/api/gene/<gene_name>")
@@ -113,11 +169,54 @@ def gene_details(gene_name):
 def population_details(population_name):
     """API endpoint for getting population details"""
     results = query_database("""
-        SELECT population_name, sampling_location 
+        SELECT population_name
         FROM population 
         WHERE population_name = ?
     """, (population_name,))
     return jsonify(results)
+
+@app.route("/population", methods=["GET", "POST"])
+def population_fst_plot():
+    conn = sqlite3.connect('genetics.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT CHROM FROM fst")
+    chromosomes = cursor.fetchall()
+    available_chromosomes = [chrom[0] for chrom in chromosomes]
+
+    # Return the HTML page with available chromosomes
+    return render_template("population.html", available_chromosomes=available_chromosomes)
+
+
+@app.route("/fst_data")
+def fetch_fst_data():
+    conn = sqlite3.connect('genetics.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT POS, FST, CHROM
+        FROM fst
+    """)
+    data = cursor.fetchall()
+
+    if not data:
+        return jsonify({"error": "No data available for the chromosomes."}), 404
+
+    positions = [row[0] for row in data]
+    fst_values = [row[1] for row in data]
+    chromosomes = [row[2] for row in data]
+
+    print("Fetched Data Sample:", positions[:5], fst_values[:5], chromosomes[:5])  # Debugging output
+
+    return jsonify({"positions": positions, "fst_values": fst_values, "chromosomes": chromosomes})
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

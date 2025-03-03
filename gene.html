@@ -4,57 +4,37 @@
 <head>
     <meta charset="UTF-8">
     <title>Gene Information - T2D SNP Explorer</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 
-<body>
+<body class="gene-info-page">
     <header>
-        <h1>Ontological Term(s) for Gene: <span id="geneName"></span></h1>
-        <script>
-            // Extract gene name from URL path (e.g., /gene/TCF7L2)
-            const geneName = window.location.pathname.split("/").pop();
-            document.getElementById("geneName").textContent = geneName || "Unknown";
-        </script>        
+        <h1>Gene Information for: <span id="geneName">{{ gene_name }}</span></h1>
     </header>
 
     <main>
+        <!-- Gene Name -->
         <section id="geneDetails">
-            <h2>Main Ontological Term: <span id="accessionID">Loading...</span></h2>
-            <p><strong>Accession ID:</strong> <span id="accessionID">Loading...</span></p>
-            <p><strong>Gene Definition / Functionality:</strong> <span id="geneDefinition">Loading...</span></p>
-            <p><strong>Synonyms:</strong> <span id="geneSynonyms">Loading...</span></p>
+            <h2>Gene Details</h2>
+            <p><strong>Gene Name:</strong> {{ gene_name }}</p>
         </section>
 
-        <section id="geneParents">
-            <h2>Parent Terms</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Accession ID</th>
-                        <th>Definition</th>
-                        <th>Synonyms</th>
-                    </tr>
-                </thead>
-                <tbody id="parentTermsTable">
-                    <!-- Parent terms dynamically inserted here -->
-                </tbody>
-            </table>
-        </section>
-
-        <section id="geneChildren">
-            <h2>Child Terms</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Accession ID</th>
-                        <th>Definition</th>
-                        <th>Synonyms</th>
-                    </tr>
-                </thead>
-                <tbody id="childTermsTable">
-                    <!-- Child terms dynamically inserted here -->
-                </tbody>
-            </table>
+        <!-- UniProt Data -->
+        <section id="uniprotDetails">
+            <h2>UniProt Information</h2>
+            {% if uniprot_data %}
+                <p><strong>Accession ID:</strong> {{ uniprot_data.accession }}</p>
+                <p><strong>Gene Function:</strong> {{ uniprot_data.function }}</p>
+                <p><strong>Synonyms:</strong> 
+                    {% if uniprot_data.synonyms %}
+                        {{ uniprot_data.synonyms | join(", ") }}
+                    {% else %}
+                        No synonyms available.
+                    {% endif %}
+                </p>
+            {% else %}
+                <p>No UniProt data available.</p>
+            {% endif %}
         </section>
 
         <button id="backToResults">Back to Results</button>
@@ -64,7 +44,6 @@
         <p>&copy; 2025 T2D SNP Explorer</p>
     </footer>
 
-    <script type="module" src="/static/ui.js"></script>
     <script>
         document.getElementById("backToResults").addEventListener("click", function () {
             window.history.back();

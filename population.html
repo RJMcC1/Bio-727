@@ -1,71 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Population Information - T2D SNP Explorer</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FST Scatter Plot</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
-    <header>
-        <h1>Population Information: <span id="populationName"></span></h1>
-        <script>
-            // Extract population name from URL path (e.g., /population/SA)
-            const populationName = window.location.pathname.split("/").pop();
-            document.getElementById("populationName").textContent = populationName || "Unknown";
-        </script>        
-    </header>
+    <h1>FST Scatter Plot Across Chromosomes</h1>
 
-    <main>
-        <section id="populationDetails">
-            <h2>Population Details</h2>
-            <p id="populationInfo">Loading population information...</p>
-        </section>
+    <label for="chromosome">Select Chromosome to Highlight:</label>
+    <select id="chromosome">
+        <option value="">All Chromosomes</option>
+        {% for chrom in available_chromosomes %}
+            <option value="{{ chrom }}">{{ chrom }}</option>
+        {% endfor %}
+    </select>
 
-        <section id="populationStatistics">
-            <h2>Summary Statistics of Positive Selection</h2>
-            <canvas id="selectionPlot"></canvas>
-        </section>
+    <canvas id="fstChart" width="900" height="500"></canvas>
 
-        <button id="downloadData">Download Summary Statistics</button>
-        <button id="backToResults">Back to Results</button>
-    </main>
+<script>
+    let chartInstance = null;
+    let allData = { positions: [], fst_values: [], chromosomes: [] };
 
-    <footer>
-        <p>&copy; 2025 T2D SNP Explorer</p>
-    </footer>
+    window.onload = function() {
+        fetchAllFstData();
+    };
 
-    <script type="module" src="/static/ui.js"></script>
-    <script>
-        document.getElementById("backToResults").addEventListener("click", function () {
-            window.history.back();
-        });
+    function fetchAllFstData() {
+        fetch(`/fst_data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                allData = data;
+                console.log("Fetched Data:", allData);
+                renderScatterPlot(""); // Default: No highlight
+            })
+            .catch(error => console.error("Error fetching FST data:", error));
+    }
 
-        document.getElementById("downloadData").addEventListener("click", function () {
-            const data = "Sample summary statistics\nMean: X.XX\nStd Dev: X.XX";
-            const blob = new Blob([data], { type: "text/plain" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "summary_statistics.txt";
-            a.click();
-        });
+    function renderScatterPlot(selectedChromosome) {
+        let ctx = document.getElementById("fstChart").getContext("2d");
 
-        const ctx = document.getElementById("selectionPlot").getContext("2d");
-        new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: ["Region 1", "Region 2", "Region 3", "Region 4"],
-                datasets: [{
-                    label: "Positive Selection",
-                    data: [1.2, 2.5, 1.8, 2.1],
-                    borderColor: "blue",
-                    fill: false
-                }]
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        let backgroundData = [];
+        let highlightData = [];
+
+        allData.positions.forEach((position, index) => {
+            let point = { x: position, y: allData.fst_values[index] };
+            let chromosome = String(allData.chromosomes[index]); // Ensure it's a string
+
+            if (selectedChromosome && chromosome === selectedChromosome) {
+                highlightData.push(point); // Highlighted in red
+            } else {
+                backgroundData.push(point); // Normal data in blue
             }
         });
-    </script>
-</body>
 
-</html>
+        chartInstance = new Chart(ctx, {
+            type: "scatter",
+            data: {
+                datasets: [
+                    {
+                        label: "All Chromosomes",
+                        data: backgroundData,
+                        backgroundColor: "rgba(0, 0, 255, 0.2)", // Light blue
+                        borderColor: "blue",
+                        pointRadius: 2,
+                    },
+                    {
+                        label: selectedChromosome ? `Chromosome ${selectedChromosome}` : "No Highlight",
+                        data: highlightData,
+                        backgroundColor: "rgba(255, 0, 0, 1)", // Bright red
+                        borderColor: "red",
+                        pointRadius: 5,
+                    },
+                ],
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: "Genomic Position (POS)" },
+                        ticks: { stepSize: 5000000, maxTicksLimit: 20 },
+                    },
+                    y: {
+                        title: { display: true, text: "FST Value" },
+                        min: 0,
+                        max: 0.25,
+                    },
+                },
+            },
+        });
+    }
+
+    document.getElementById("chromosome").addEventListener("change", function() {
+        let selectedChrom = this.value;
+        console.log("Selected Chromosome:", selectedChrom); // Debugging log
+        renderScatterPlot(selectedChrom);
+    });
+</script>

@@ -2,17 +2,26 @@
 body {
     font-family: Arial, sans-serif;
     margin: 0;
+    flex-direction: column;
     background-color: #f8f8f8;
+    border-bottom: 0.5px solid #ddd;
+    min-height: 100vh;
+    display: grid;
+    
+    grid-template-rows: auto 1fr auto;
+    
 }
   
-header, footer {
+header {
     background-color: #222;
     color: #fff;
     padding: 10px;
+    border-top: 0.5px solid #ddd;
 }
   
 main {
     padding: 20px;
+    flex: 1;
 }
   
   h1, h2 {
@@ -29,6 +38,7 @@ main {
   th, td {
     border: 1px solid #ddd;
     padding: 8px;
+    text-align: center;
 }
   
   th {
@@ -45,8 +55,8 @@ form {
 
   /* Additional styling in styles.css */
 button {
-    background-color: #007bff;
-    color: #fff;
+    background-color: #f8f8f8;
+    color: #f8f8f8;
     padding: 8px 12px;
     border: none;
     cursor: pointer;
@@ -57,5 +67,204 @@ button {
     background-color: #0069d9;
 }
   
+footer {
+    background-color: #222;
+    color: #fff;
+    padding: 0.5px;
+    border-top: 0.5px solid #ddd; 
+    min-height: 50px;
+}
 
+/* Style for Search Form */
+#searchSection {
+    background-color: #fff;
+    padding: 20px;
+    border-radius:0px;
+    box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 20px;
+    width: 50%;  /* Set width to control the form's size */
+    text-align: center; /* Center the text inside the search section */
+    
+    /* Center the section vertically and horizontally */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-style: none;
+    border-color: black; 
+    min-width: 100px;
+    display: inline-block;
+    
+}
 
+form {
+    display: grid;
+    gap: 15px;
+    justify-items: center; /* Center the form elements */
+    min-width: 100px;
+}
+
+select,
+input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 45%; /* Ensure the input and select fields are consistent and take up most of the width */
+    box-sizing: border-box;
+    background-image: url("/static/images/search.png");
+    background-repeat: no-repeat;
+    background-position: 10px center;
+    padding-left: 40px;
+    background-size: 20px 20px;
+    transition:width 0.4s ease-in-out;
+    max-width: auto;
+    display: inline-block;
+}
+
+select:focus,
+input:focus {
+    border: 1px solid #ddd;
+    outline: none;
+    width: 80%;
+    box-shadow: none;
+}
+
+input:-webkit-autofill {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-
+}
+
+input:focus-visible {
+    outline:none;
+    box-shadow: none;
+}
+
+#coordinateFields input {
+    width: 30%;
+    display: inline-block;
+    text-align: center;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: auto;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #0069d9;
+}
+
+input::placeholder {
+    color: #888;
+}
+
+#searchType {
+    width: 45%;
+}
+
+#searchSection{
+ font-size:25px;
+ line-height:77.4px;
+ text-shadow:rgb(255, 255, 255) 1px 1px 0px, rgb(170, 170, 170) 2px 2px 0px;
+ font-weight:400;
+ text-decoration:none;
+ border-top-left-radius:10px;
+ border-bottom-left-radius:10px;
+ border-bottom-right-radius:10px;
+ border-top-right-radius: 10px;
+ background-color:transparent;
+ border-style:solid;
+ max-width: auto;
+ 
+}
+
+@media (max-width: 768px) {
+ input, select {
+  width: 100%;
+ }
+}
+
+* {
+ width: 100;
+}
+/* ==========================
+   Gene Information Page Styles
+   ========================== */
+.gene-info-page {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    color: black;
+    text-align: center;
+}
+
+/* Header */
+.gene-info-page header {
+    background: #0077cc;
+    color: white;
+    padding: 1rem;
+    font-size: 1.5rem;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Main Content */
+.gene-info-page main {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+/* Section Styling */
+.gene-info-page section {
+    background: white;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+.gene-info-page h2 {
+    color: #00000;
+    margin-bottom: 0.5rem;
+}
+
+.gene-info-page p {
+    line-height: 1.6;
+}
+
+/* Back Button */
+.gene-info-page #backToResults {
+    display: inline-block;
+    background: #0077cc;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 1rem;
+}
+
+.gene-info-page #backToResults:hover {
+    background: #005fa3;
+}
+
+/* Footer */
+.gene-info-page footer {
+    margin-top: 2rem;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: #555;
+}
