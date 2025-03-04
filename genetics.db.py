@@ -11,14 +11,15 @@ tsv_file_path = 'associations.tsv'  # File containing SNP association data
 uniprot_path = 'uniprot_data.tsv'   # File containing gene-to-UniProt page mapping
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'    # FST values for genetic differentiation
 details_glb= 'Populationdetails.tsv'    # File containing global population data
+ihs_file_path = 'ihs_summary_table.tsv'
 subpopuplation ='sub_population.tsv';   # File containing sub-population data
 
 # Holds the mean and standard deviation for a genetic statistic (e.g., FST)
 # Data to be inserted: Placeholder for genetic statistics like FST (Fixation Index)??????????
 data = {
-    'stats': ['fst'],   # The name of the statistic being stored
-    'mean': [0.0268],
-    'std': [0.0423]
+    'stats': ['fst', 'ihs'],  # The name of the statistics being stored
+    'mean': [0.0268, -6.84859e-10],
+    'std': [0.0423, 0.999982]
 }
 
 # ================================================================
@@ -157,6 +158,15 @@ def setup_database():
         std DECIMAL(10,6)
         )
     ''')
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ihs_stat (
+    Chromosome TEXT,
+    Position INTEGER,
+    iHS_Score DECIMAL(10,6),
+    Mean_iHS DECIMAL(10,6),
+    Std_iHS DECIMAL(10,6),
+    Population TEXT)
+    """)
            
     
     conn.commit()
@@ -283,6 +293,10 @@ def main():
     # Load TSV file into a DataFrame, as from tab-separated values
     df = pd.read_csv(tsv_file_path, sep='\t')
     df.to_sql('associations', conn, if_exists='replace', index=False) # Insert into associations table
+    conn.commit()
+
+    ihs = pd.read_csv(ihs_file_path, sep = '\t')
+    ihs.to_sql('ihs_stat', conn, if_exists='replace',index= False )
     conn.commit()
     print(5)
 
