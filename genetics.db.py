@@ -17,10 +17,14 @@ subpopuplation ='sub_population.tsv';   # File containing sub-population data
 # Holds the mean and standard deviation for a genetic statistic (e.g., FST)
 # Data to be inserted: Placeholder for genetic statistics like FST (Fixation Index)??????????
 data = {
-    'stats': ['fst', 'ihs'],  # The name of the statistics being stored
-    'mean': [0.0268, -6.84859e-10],
-    'std': [0.0423, 0.999982]
+    'Chromosome': ['2', '3', '6', '7', '8', '9', '10', '11', '16', '17', '20'] * 2,  # Repeated for 'fst' and 'ihs'
+    'Stat': ['fst'] * 11 + [f'ihs_chr{chrom}' for chrom in ['2', '3', '6', '7', '8', '9', '10', '11', '16', '17', '20']],
+    'Mean': [0.0268] * 11 + [-6.84859e-10, -5.34079e-10, -6.2003e-10, -5.61562e-09, -9.04638e-09, 
+                             7.126e-09, 7.6355e-10, 3.83258e-10, 5.75677e-10, 1.17272e-09, -6.03944e-09],
+    'Std': [0.0423] * 11 + [0.999982, 0.999979, 0.999978, 0.999975, 0.999973, 
+                            0.999966, 0.999971, 0.999970, 0.999952, 0.999945, 0.999931]
 }
+
 
 # ================================================================
 # Database Setup and Table Creation:
@@ -199,11 +203,11 @@ def process_populations(conn):
             INSERT OR IGNORE INTO population (population_name)
             VALUES (?)
         ''', (pop_name,))
-        for i in range(len(data['stats'])):
+        for i in range(len(data['Stat'])):
             cursor.execute('''
         INSERT OR IGNORE INTO mean_std(stat, mean, std)
         VALUES (?, ?, ?)
-    ''', (data['stats'][i], data['mean'][i], data['std'][i]))
+    ''', (data['Stat'][i], data['Mean'][i], data['Std'][i]))
         conn.commit()
 
 # ================================================================
