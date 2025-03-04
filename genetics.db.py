@@ -199,10 +199,11 @@ def process_populations(conn):
             INSERT OR IGNORE INTO population (population_name)
             VALUES (?)
         ''', (pop_name,))
-        cursor.execute('''
-            INSERT OR IGNORE INTO mean_std(stat, mean, std)
-            VALUES (?, ?, ?)
-        ''', (data['stats'][0], data['mean'][0], data['std'][0]))
+        for i in range(len(data['stats'])):
+            cursor.execute('''
+        INSERT OR IGNORE INTO mean_std(stat, mean, std)
+        VALUES (?, ?, ?)
+    ''', (data['stats'][i], data['mean'][i], data['std'][i]))
         conn.commit()
 
 # ================================================================
