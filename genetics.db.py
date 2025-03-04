@@ -11,7 +11,7 @@ tsv_file_path = 'associations.tsv'  # File containing SNP association data
 uniprot_path = 'uniprot_data.tsv'   # File containing gene-to-UniProt page mapping
 fst_file_path = 't2d_snps_with_fst_GIHvsGBR.csv'    # FST values for genetic differentiation
 details_glb= 'Populationdetails.tsv'    # File containing global population data
-ihs_file_path = 'ihs_summary_table.tsv'
+ihs_file_path = 't2d_snp_summary.tsv'
 subpopuplation ='sub_population.tsv';   # File containing sub-population data
 
 # Holds the mean and standard deviation for a genetic statistic (e.g., FST)
