@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Population iHS Scatter Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+</head>
+<body>
+
+<h1>iHS score for Gujarati Indian in Houston Vs Punjabi indian in Lahore</h1>
+
+<div>
+    <canvas id="scatter-plot"></canvas>
+</div>
+
+<script>
+    const ctx = document.getElementById('scatter-plot').getContext('2d');
+
+    const chartData = {
+        datasets: []
+    };
+
+    let chart = new Chart(ctx, {
+        type: 'scatter',
+        data: chartData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            const { x, y, chromosome } = tooltipItem.raw;
+                            return `Chromosome: ${chromosome}, Position: ${x}, iHS Score: ${y}`;
+                        }
+                    }
+                },
+                annotation: {
+                    annotations: [
+                        {
+                            type: 'line',
+                            yMin: 2,
+                            yMax: 2,
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            borderDash: [5, 5],  // Dotted line
+                            label: {
+                                enabled: true,
+                                content: 'iHS Threshold +2',
+                                position: 'right',
+                                backgroundColor: 'white'
+                            }
+                        },
+                        {
+                            type: 'line',
+                            yMin: -2,
+                            yMax: -2,
+                            borderColor: 'red',
+                            borderWidth: 2,
+                            borderDash: [5, 5],  // Dotted line
+                            label: {
+                                enabled: true,
+                                content: 'iHS Threshold -2',
+                                position: 'right',
+                                backgroundColor: 'white'
+                            }
+                        }
+                    ]
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: {
+                        display: true,
+                        text: 'Position'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'iHS Score'
+                    },
+                    ticks: {
+                        precision: 3
+                    },
+                    min: -2,  // To ensure the threshold lines are visible
+                    max: 2
+                }
+            }
+        }
+    });
+
+    async function fetchIHSData() {
+        const response = await fetch('/statistics/ihs_data');
+        const data = await response.json();
+        return data;
+    }
+
+    async function updateChart() {
+        const data = await fetchIHSData();
+
+        chartData.datasets = [];
+
+        const gihData = data.filter(item => item.Std_iHS_Population === 'GIH');
+        const pjlData = data.filter(item => item.Std_iHS_Population === 'PJL');
+
+        chartData.datasets.push({
+            label: 'GIH Population',
+            data: gihData.map(item => ({
+                x: item.Position, 
+                y: item.iHS_Score,
+                chromosome: item.Chromosome
+            })),
+            backgroundColor: 'rgba(255, 99, 132, 0.6)', 
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            pointRadius: 3
+        });
+
+        chartData.datasets.push({
+            label: 'PJL Population',
+            data: pjlData.map(item => ({
+                x: item.Position, 
+                y: item.iHS_Score,
+                chromosome: item.Chromosome
+            })),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',  
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            pointRadius: 3
+        });
+
+        chart.update();
+    }
+
+    updateChart();
+</script>
+
+</body>
+</html>
+
+
+
