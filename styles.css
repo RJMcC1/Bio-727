@@ -56,6 +56,79 @@ button {
   button:hover {
     background-color: #0069d9;
 }
+
+
+
+#fstTableContainer {
+  max-height: 200px;  /* Adjust based on row height */
+  overflow-y: auto;   /* Enables vertical scrolling */
+  border: 1px solid #ccc; /* Optional: Adds a border for visibility */
+}
+
+#fstTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Ensures columns are evenly spaced */
+}
+
+#fstTable thead {
+  position: sticky;
+  top: 0;
+  background-color: #f9f9f9; /* Keeps header visible while scrolling */
+  z-index: 1;
+}
+
+#fstTable th, #fstTable td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+
   
 
+#ihsTableContainer {
+  max-height: 250px;  /* Controls number of visible rows */
+  overflow-y: auto;   /* Enables vertical scrolling */
+  border: 1px solid #ccc; /* Adds a border for visibility */
+}
 
+/* Ensure table takes full width and columns align properly */
+#ihsTable {
+  width: 100%;  /* Ensures the table spans the full container width */
+  border-collapse: collapse; /* Prevents gaps between cells */
+  table-layout: fixed;  /* Forces equal column widths */
+}
+
+#ihsTable thead {
+  position: sticky;
+  top: 0;  /* Keeps headers fixed while scrolling */
+  background-color: #f9f9f9; /* Optional: Adds background for visibility */
+  z-index: 1;
+}
+
+#ihsTable th, #ihsTable td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+  width: auto;  /* Let the browser calculate appropriate widths */
+}
+
+#ihsTable tbody {
+  display: block;
+  overflow-y: auto;
+  max-height: 200px; /* Controls the number of visible rows */
+  width: 100%;
+}
+
+#ihsTable thead, #ihsTable tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;  /* Ensures header and data have the same width */
+}
+
+#ihsTable tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed; /* Ensures rows align with headers */
+}

@@ -1,242 +1,352 @@
-import pandas as pd
-import sqlite3
+import sqlite3  # SQLite module to create and manage the database.
+import pandas as pd # Pandas for handling TSV/CSV file imports, reads and writes data from TSV/CSV files.
+import json # JSON module for handling & parsing the allele frequency data.
 
 # ================================================================
-# Configuration / file paths
+# Configuration: Adjust these file paths as needed
 # ================================================================
-db_file_path = 'genetics.db'    # path for the SQLite database
-tsv_file_path = 'associations.tsv'  # path to TSV file
+db_file_path = 'genetics.db'    # SQLite database file (output)
+# Input files:
+tsv_file_path = 'associations.tsv'  # File containing SNP association data
+uniprot_path = 'uniprot_data.tsv'   # File containing gene-to-UniProt page mapping
+details_glb= 'Populationdetails.tsv'    # File containing global population data
+subpopuplation ='sub_population.tsv';   # File containing sub-population data
 
-# ================================================================
-# Connect to the SQLite database
-# ================================================================
-conn = sqlite3.connect(db_file_path)
-cursor = conn.cursor()
+fst_file_path_GIHvsGBR = 't2d_snps_with_fst_GIHvsGBR.csv'    # FST values for genetic differentiation
+ihs_file_path_SA = 'ihs_summary_table_SA.tsv'
 
-# ================================================================
-# Step 2: Create the Schema Tables
-# ================================================================
-cursor.execute('''CREATE TABLE IF NOT EXISTS gene (
-    gene_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    gene_name TEXT NOT NULL,
-    functional_term TEXT,
-    ontology_term TEXT,
-    nearest TEXT
-)''')
-
-cursor.execute('''CREATE TABLE IF NOT EXISTS functional_term_gene_link (
-    gene_id INTEGER NOT NULL,
-    functional_term_id INTEGER,
-    ontology_term_id INTEGER,
-    PRIMARY KEY (gene_id, functional_term_id, ontology_term_id),
-    FOREIGN KEY (gene_id) REFERENCES gene (gene_id)
-)''')
-
-cursor.execute('''CREATE TABLE IF NOT EXISTS population (
-    population_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    population_name TEXT NOT NULL,
-    sampling_location TEXT
-)''')
-
-cursor.execute('''CREATE TABLE IF NOT EXISTS snp (
-    snp_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    snp_name TEXT NOT NULL,
-    chromosome TEXT NOT NULL,
-    start_position INTEGER NOT NULL,
-    end_position INTEGER,
-    p_value DECIMAL(10,6),
-    mapped_gene_id INTEGER,
-    FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
-)''')
-
-cursor.execute('''CREATE TABLE IF NOT EXISTS selection_statistics_avg_std_dev (
-    snp_id INTEGER,
-    region_start INTEGER,
-    region_end INTEGER,
-    average_stat DECIMAL(10,6),
-    std_dev_stat DECIMAL(10,6),
-    FOREIGN KEY (snp_id) REFERENCES snp (snp_id)
-)''')
-
-cursor.execute('''CREATE TABLE IF NOT EXISTS snp_population_selection_stats (
-    snp_id INTEGER NOT NULL,
-    population_id INTEGER NOT NULL,
-    selection_statistic_1 DECIMAL(10,6),
-    selection_statistic_2 DECIMAL(10,6),
-    PRIMARY KEY (snp_id, population_id),
-    FOREIGN KEY (snp_id) REFERENCES snp (snp_id),
-    FOREIGN KEY (population_id) REFERENCES population (population_id)
-)''')
+# Holds the mean and standard deviation for a genetic statistic (e.g., FST)
+# Data to be inserted: Placeholder for genetic statistics like FST (Fixation Index)Is this still a placeholder Ryan??????????
+data = {
+    'Chromosome': ['2', '3', '6', '7', '8', '9', '10', '11', '16', '17', '20'] * 2,  # Repeated for 'fst' and 'ihs'
+    'Stat': ['fst'] * 11 + [f'ihs_chr{chrom}' for chrom in ['2', '3', '6', '7', '8', '9', '10', '11', '16', '17', '20']],
+    'Mean': [0.0268] * 11 + [-6.84859e-10, -5.34079e-10, -6.2003e-10, -5.61562e-09, -9.04638e-09, 
+                             7.126e-09, 7.6355e-10, 3.83258e-10, 5.75677e-10, 1.17272e-09, -6.03944e-09],
+    'Std': [0.0423] * 11 + [0.999982, 0.999979, 0.999978, 0.999975, 0.999973, 
+                            0.999966, 0.999971, 0.999970, 0.999952, 0.999945, 0.999931]
+}
 
 # ================================================================
-# Step 3: Create a Staging Table for the TSV Data ("variants")
+# Database Setup and Table Creation:
+# Initializes the SQLite database and creates necessary tables
 # ================================================================
-cursor.execute('''CREATE TABLE IF NOT EXISTS associations (
-    varId                TEXT,
-    alignment            TEXT,
-    alt                  TEXT,
-    ancestry             TEXT,
-    beta                 REAL,
-    chromosome           TEXT,
-    clumpEnd             INTEGER,
-    clumpStart           INTEGER,
-    dataset              TEXT,
-    inMetaTypes          TEXT,
-    leadSNP              TEXT,
-    n                    INTEGER,
-    pValue               REAL,
-    phenotype            TEXT,
-    position             INTEGER,
-    posteriorProbability REAL,
-    reference            TEXT,
-    source               TEXT,
-    stdErr               REAL,
-    clump                TEXT,
-    dbSNP                TEXT,
-    consequence          TEXT,
-    nearest              TEXT,
-    minorAllele          TEXT,
-    maf                  REAL,
-    af                   REAL
-)''')
+def setup_database():
+    conn = sqlite3.connect(db_file_path)    # Connect to / create the SQLite database
+    cursor = conn.cursor()  # Create a cursor object to execute SQL queries
 
-conn.commit()
-
-# ================================================================
-# Step 4: Import the TSV File into the "variants" Staging Table Using Pandas
-# ================================================================
-# Read the TSV file (which should have headers) into a DataFrame.
-df = pd.read_csv(tsv_file_path, sep='\t')
-
-# Optional: Preview the first few rows of the TSV data
-print("Preview of TSV data:")
-print(df.head())
-
-# Insert the data into the variants table.
-# Using if_exists='replace' to ensure the staging table holds only the latest import.
-df.to_sql('associations', conn, if_exists='replace', index=False)
-conn.commit()
-
-# ================================================================
-# Step 1: Insert new genes if not already in the database
-# ================================================================
-cursor.execute('''
-    INSERT OR IGNORE INTO gene (gene_name, functional_term, ontology_term, nearest)
-    SELECT DISTINCT nearest, consequence, NULL, nearest
-    FROM associations
-    WHERE nearest IS NOT NULL;
+    # Create tables
+    # gene Table: Stores Gene Information
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gene (
+            gene_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gene_name TEXT NOT NULL,
+            functional_term TEXT,
+            UNIQUE(gene_name, functional_term)
+        )
+    ''')
+    # population Table: Stores Population Names
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS population (
+            population_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            population_name TEXT NOT NULL UNIQUE
+        )
+    ''')
+    # snp Table: Stores SNPs and Their Locations
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS snp (
+            snp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            snp_name TEXT NOT NULL UNIQUE,
+            chromosome TEXT NOT NULL,
+            start_position INTEGER NOT NULL,
+            end_position INTEGER,
+            p_value DECIMAL(10,6),
+            mapped_gene_id INTEGER,
+            FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
+        )
+    ''')
+    # population_glb Table: Stores Population Metadata
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS population_glb (
+        detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        population_name TEXT NOT NULL,
+        geographical_sampling_locations TEXT NOT NULL,
+        genetic_diversity TEXT NOT NULL,
+        disease_trait_associations TEXT NOT NULL,
+        FOREIGN KEY (population_name) REFERENCES population (population_name) 
+    )
 ''')
-conn.commit()
+    # snp_population_selection_stats Table: Stores SNP Frequencies by Population
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS snp_population_selection_stats (
+            snp_id INTEGER NOT NULL,
+            population_id INTEGER NOT NULL,
+            allele_freq DECIMAL(10,6),
+            PRIMARY KEY (snp_id, population_id),
+            FOREIGN KEY (snp_id) REFERENCES snp (snp_id),
+            FOREIGN KEY (population_id) REFERENCES population (population_id)
+        )
+    ''')
 
-# ================================================================
-# Step 2: Insert new SNPs if they don’t already exist
-# ================================================================
-cursor.execute('''
-    INSERT OR IGNORE INTO snp (snp_name, chromosome, start_position, end_position, p_value, mapped_gene_id)
-    SELECT DISTINCT associations.dbSNP, associations.chromosome, associations.clumpStart, associations.clumpEnd, associations.pValue, gene.gene_id
-    FROM associations
-    LEFT JOIN gene ON gene.gene_name = associations.nearest;
-''')
-conn.commit()
-
-
-# ================================================================
-# Step 3: Insert new populations if not already in the database
-# ================================================================
-cursor.execute('''
-    INSERT OR IGNORE INTO population (population_name)
-    SELECT DISTINCT ancestry FROM associations;
-''')
-conn.commit()
-
-# ================================================================
-# Step 4: Insert SNP-Population selection statistics
-# ================================================================
-cursor.execute('''
-    INSERT OR IGNORE INTO snp_population_selection_stats (snp_id, population_id, selection_statistic_1, selection_statistic_2)
-    SELECT snp.snp_id, population.population_id, associations.maf, associations.beta
-    FROM associations
-    JOIN snp ON snp.snp_name = associations.dbSNP
-    JOIN population ON population.population_name = associations.ancestry;
-''')
-conn.commit()
-
-# ================================================================
-# Handle JSON-Like `af` Column
-# ================================================================
-cursor.execute("ALTER TABLE associations ADD COLUMN af_json TEXT;")
-conn.commit()
-
-# Load TSV File
-df = pd.read_csv(tsv_file_path, sep='\t')
-
-# Convert `af` column to string for storage
-df["af_json"] = df["af"].astype(str)
-df.drop(columns=["af"], inplace=True)
-
-# Reinsert into SQLite
-df.to_sql('associations', conn, if_exists='replace', index=False)
-conn.commit()
-
-# ================================================================
-# Step 5: Preview the Tables
-# ================================================================
-def preview_all_tables(db_path, limit=10):
-    """
-    Preview all tables in the SQLite database.
+    # Staging associations table for TSV import
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS associations (
+            varId TEXT, alignment TEXT, alt TEXT, ancestry TEXT,
+            beta REAL, chromosome TEXT, clumpEnd INTEGER, clumpStart INTEGER,
+            dataset TEXT, inMetaTypes TEXT, leadSNP TEXT, n INTEGER,
+            pValue REAL, phenotype TEXT, position INTEGER,
+            posteriorProbability REAL, reference TEXT, source TEXT,
+            stdErr REAL, clump TEXT, dbSNP TEXT, consequence TEXT,
+            nearest TEXT, minorAllele TEXT, maf REAL, af TEXT
+        )
+    ''')
     
-    Parameters:
-    db_path (str): Path to the SQLite database
-    limit (int): Number of rows to preview from each table
-    """
-    # Connect to the database
-    conn = sqlite3.connect(db_path)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS uniprot_data (
+        gene_name TEXT NOT NULL,
+        mapped_gene_id INTEGER,  -- Foreign Key to Gene Table
+        uniprot_url TEXT,
+        uniprot_id TEXT,
+        FOREIGN KEY (mapped_gene_id) REFERENCES gene (gene_id)
+        )
+    ''')
+
+    
+    cursor.execute(''' 
+        CREATE TABLE IF NOT EXISTS fst_GIHvsGBR (
+            varId TEXT,
+            alignment TEXT,
+            alt TEXT,
+            ancestry TEXT,
+            beta DECIMAL(10,6),
+            CHROM TEXT,
+            clumpEnd INTEGER,
+            clumpStart INTEGER,
+            dataset TEXT,
+            inMetaTypes TEXT,
+            leadSNP TEXT,
+            n INTEGER,
+            pValue DECIMAL(10,6),
+            phenotype TEXT,
+            POS INTEGER,
+            posteriorProbability DECIMAL(10,6),
+            reference TEXT,
+            source TEXT,
+            stdErr DECIMAL(10,6),
+            clump TEXT,
+            dbSNP TEXT,
+            consequence TEXT,
+            nearest TEXT,
+            minorAllele TEXT,
+            maf DECIMAL(10,6),
+            af TEXT,
+            FST DECIMAL(10,6),
+            FOREIGN KEY (dbSNP) REFERENCES snp (snp_name)             
+        )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS sub_population_details (
+        population TEXT,
+        sub_population TEXT,
+        genetic_diversity TEXT,
+        disease_trait_associations TEXT,
+        source TEXT,
+        PRIMARY KEY (population, sub_population),
+        FOREIGN KEY (population) REFERENCES population (population_name)
+        )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS mean_std(
+        stat TEXT UNIQUE,
+        mean DECIMAL(10,6),
+        std DECIMAL(10,6)
+        )
+    ''')
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ihs_stat_SA (
+        Chromosome TEXT,
+        Position INTEGER,
+        iHS_Score DECIMAL(10,6),
+        Mean_iHS DECIMAL(10,6),
+        Std_iHS DECIMAL(10,6),
+        Population TEXT
+        )
+    """)
+ 
+    conn.commit()
+    return conn
+print (1)
+
+# ================================================================
+# Data Processing Functions
+# ================================================================
+# Extracts unique population names from JSON in af column and inserts them into the population table:
+def process_populations(conn):
     cursor = conn.cursor()
     
-    # Get list of all tables
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
-    
-    # Preview each table
-    for table in tables:
-        table_name = table[0]
-        print("\n" + "="*50)
-        print(f"Preview of table '{table_name}':")
-        print("="*50)
-        
+    # Extract unique population names from JSON 'af' column
+    cursor.execute("SELECT af FROM associations WHERE af IS NOT NULL AND af != ''")
+    af_records = cursor.fetchall()
+
+    population_names = set()
+    for (af_json_str,) in af_records:
         try:
-            # Get column names
-            cursor.execute(f"PRAGMA table_info({table_name});")
-            columns = [col[1] for col in cursor.fetchall()]
-            print("\nColumns:", ", ".join(columns))
-            
-            # Get row count
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
-            row_count = cursor.fetchone()[0]
-            print(f"Total rows: {row_count}")
-            
-            # Preview data
-            df = pd.read_sql_query(f"SELECT * FROM {table_name} LIMIT {limit}", conn)
-            if not df.empty:
-                print("\nSample data:")
-                print(df)
-            else:
-                print("\nNo data available in this table.")
-                
-        except sqlite3.Error as e:
-            print(f"Error previewing table {table_name}: {e}")
+            af_dict = json.loads(af_json_str.replace("'", "\""))
+            population_names.update(af_dict.keys())
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"Error parsing JSON: {e}")
+            continue
+
+
+    # Insert populations
+    for pop_name in population_names:
+        cursor.execute('''
+            INSERT OR IGNORE INTO population (population_name)
+            VALUES (?)
+        ''', (pop_name,))
+        for i in range(len(data['Stat'])):
+            cursor.execute('''
+        INSERT OR IGNORE INTO mean_std(stat, mean, std)
+        VALUES (?, ?, ?)
+    ''', (data['Stat'][i], data['Mean'][i], data['Std'][i]))
+        conn.commit()
+
+# ================================================================
+# Extracts genes from associations table and inserts them into gene table:
+def process_genes(conn):
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR IGNORE INTO gene (gene_name, functional_term)
+        SELECT DISTINCT nearest, consequence
+        FROM associations
+        WHERE nearest IS NOT NULL
+    ''')
+    conn.commit()
+
+# ================================================================
+# Extracts SNPs from associations table and links them to genes:
+def process_snps(conn):
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR IGNORE INTO snp (
+            snp_name, chromosome, start_position, end_position, p_value, mapped_gene_id
+        )
+        SELECT DISTINCT a.dbSNP, a.chromosome, a.clumpStart, a.clumpEnd, a.pValue, g.gene_id
+        FROM associations a
+        LEFT JOIN gene g ON g.gene_name = a.nearest AND g.functional_term = a.consequence
+        LEFT JOIN snp s ON s.snp_name = a.dbSNP
+        WHERE a.dbSNP IS NOT NULL AND s.snp_name IS NULL
+    ''')
+    conn.commit()
+
+# ================================================================
+# Extracts SNPs with allele frequency data (af) from the associations table.
+def process_allele_frequencies(conn):
+    cursor = conn.cursor()
+    # Fetch SNPs with allele frequency data
+    cursor.execute('''
+        SELECT dbSNP, af FROM associations
+        WHERE dbSNP IS NOT NULL AND af IS NOT NULL AND af != ''
+    ''')
+    snp_af_rows = cursor.fetchall()
+    # Parses JSON allele frequency data.
+    for dbSNP, af_json_str in snp_af_rows:
+        try:
+            af_dict = json.loads(af_json_str.replace("'", "\""))
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"Error parsing JSON for {dbSNP}: {e}")
+            continue
+
+        # Insert Population-Specific Allele Frequencies: maps SNPs to population-specific allele frequencies.
+        # Get SNP ID
+        cursor.execute('SELECT snp_id FROM snp WHERE snp_name = ?', (dbSNP,))
+        snp_result = cursor.fetchone()
+        if not snp_result:
+            continue
+        snp_id = snp_result[0]
+
+        # Process each population frequency
+        for pop_name, af_value in af_dict.items():
+            cursor.execute('''
+                SELECT population_id FROM population WHERE population_name = ?
+            ''', (pop_name,))
+            pop_result = cursor.fetchone()
+            if not pop_result:
+                continue
+            pop_id = pop_result[0]
+
+            cursor.execute('''
+                INSERT OR REPLACE INTO snp_population_selection_stats
+                (snp_id, population_id, allele_freq)
+                VALUES (?, ?, ?)
+            ''', (snp_id, pop_id, af_value))
+    conn.commit()
+
+def process_uniprot(conn):
+    cursor = conn.cursor()
+    cursor.execute('''
+                   ''')
+print(2)
+
+# ================================================================
+# Main Execution
+# ================================================================
+# Loads TSV data and processes it:
+def main():
+    conn = setup_database() # Initialize database connection and create tables
     
+    # Import TSV data
+    # Load TSV file into a DataFrame, as from tab-separated values
+    df = pd.read_csv(tsv_file_path, sep='\t')
+    df.to_sql('associations', conn, if_exists='replace', index=False) # Insert into associations table
+    conn.commit()
+
+    ihs = pd.read_csv(ihs_file_path_SA, sep = '\t')
+    ihs.to_sql('ihs_stat_SA', conn, if_exists='replace',index= False )
+    conn.commit()
+
+    print(5)
+
+    # Load uniprot_data.tsv (UniProt Mappings)
+    # Load uniprot_data.tsv
+    uniprot_df = pd.read_csv(uniprot_path, sep='\t')
+    # Fetch existing gene mappings from the database
+    gene_mapping_query = "SELECT gene_id, gene_name FROM gene"
+    gene_mapping = pd.read_sql_query(gene_mapping_query, conn)
+    gene_mapping_dict = dict(zip(gene_mapping["gene_name"], gene_mapping["gene_id"]))
+    # Map gene_name to mapped_gene_id using the gene table
+    uniprot_df["mapped_gene_id"] = uniprot_df["gene_name"].map(gene_mapping_dict)
+    # Insert updated data into uniprot_data, ensuring 'mapped_gene_id' is populated
+    uniprot_df.to_sql('uniprot_data', conn, if_exists='replace', index=False)
+
+    # Loads global population metadata (geographical locations, genetic diversity) & stores it in population_glb.
+    glb = pd.read_csv(details_glb, sep = '\t')
+    glb.to_sql('population_glb', conn, if_exists= 'replace', index=False)   # Insert into 'population_glb'
+    conn.commit()
+
+    # Reads genetic differentiation (FST) data from a CSV file.
+    fst_GIHvsGBR = pd.read_csv(fst_file_path_GIHvsGBR, sep = ',')
+    fst_GIHvsGBR.to_sql('fst_GIHvsGBR', conn, if_exists='replace', index = False )
+    conn.commit()
+
+    print(3)
+
+    # Reads sub-population data from sub_population.tsv & Stores it in sub_population_details.
+    sub = pd.read_csv(subpopuplation, sep = '\t')
+    sub.to_sql('sub_population_details', conn, if_exists='replace', index = False ) # Insert into 'sub_population_details'
+    conn.commit()
+    print(4)
+
+    # Process data
+    process_populations(conn) # Extract unique populations from associations
+    process_genes(conn) # Extract genes and insert them into the gene table
+    process_snps(conn)  # Extract SNPs and insert them into the snp table
+    process_allele_frequencies(conn)    # Extract allele frequencies and insert into snp_population_selection_stats
+
     conn.close()
+    print("Database population completed successfully!")
 
-print("\nPreviewing all tables in the database:")
-preview_all_tables(db_file_path)
-
-# Close the final connection
-conn.close()
-print("\nDatabase operations completed successfully!")
-
-# ================================================================
-# Step 6: Close the Database Connection
-# ================================================================
-conn.close()
-print("TSV data merged with the original schema successfully!")
+if __name__ == "__main__":
+    main()

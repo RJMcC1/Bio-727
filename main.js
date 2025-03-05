@@ -1,3 +1,5 @@
+console.log("Main.js loaded!");
+
 import { fetchSearchResults } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -40,7 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (searchType.value === "coordinates") coordinateFields.style.display = "block";
     }
 
-    // Add listener for search type changes
     searchType.addEventListener("change", updateSearchInput);
     
     // Initialize correct input visibility
@@ -106,29 +107,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Function to display results in the table
-function displayResults(results) {
-    const tableBody = document.getElementById("resultsTableBody");
-    
-    if (!tableBody) {
-        console.error("Results table body not found!");
-        return;
+// Helper function to clean gene names
+function cleanGeneName(geneName) {
+    if (Array.isArray(geneName)) {
+        return geneName[0];  // Extract first element if it's an array
     }
-
-    tableBody.innerHTML = ""; // Clear previous results
-    
-    results.forEach(result => {
-        const row = document.createElement("tr");
-        // Notice how we're now using /gene?gene= instead of gene.html?gene=
-        row.innerHTML = `
-            <td>${result[0]}</td>
-            <td>${result[1]}</td>
-            <td>${result[2]}</td>
-            <td>${result[3]}</td>
-            <td><a href="/gene?gene=${encodeURIComponent(result[4])}">${result[4]}</a></td>
-            <td>${result[5]}</td>
-            <td><a href="/population?population=${encodeURIComponent(result[6])}">${result[6]}</a></td>
-        `;
-        tableBody.appendChild(row);
-    });
+    return geneName.replace(/^\["|"\]$/g, "");  // Remove brackets and quotes
 }
