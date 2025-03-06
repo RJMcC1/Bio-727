@@ -1,12 +1,11 @@
 import { fetchSearchResults, fetchGeneDetails, fetchPopulationDetails } from "./api.js";
 
+console.log("ui.js loaded!"); // Debugging log to verify the script is executing
+
+// Load search results from session storage
 document.addEventListener("DOMContentLoaded", () => {
     const tableBody = document.getElementById("resultsTableBody");
-
-    if (!tableBody) {
-        console.error("Error: Results table body not found! Check if results.html is loaded.");
-        return;
-    }
+    if (!tableBody) return;
 
     const storedResults = sessionStorage.getItem("searchResults");
     if (storedResults) {
@@ -19,10 +18,7 @@ function cleanGeneName(geneName) {
     if (!geneName) return "";
     if (Array.isArray(geneName)) return geneName[0];
 
-    if (typeof geneName === 'string') {
-        const match = geneName.match(/^\["(.+)"\]$/);
-        if (match) return match[1];
-
+    if (typeof geneName === "string") {
         try {
             const parsed = JSON.parse(geneName);
             if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
@@ -32,7 +28,7 @@ function cleanGeneName(geneName) {
 }
 
 // Handle search form submission
-document.getElementById("searchForm")?.addEventListener("submit", async function(event) {
+document.getElementById("searchForm")?.addEventListener("submit", async function (event) {
     event.preventDefault();
     const searchType = document.getElementById("searchType").value;
     let query;
@@ -50,14 +46,17 @@ document.getElementById("searchForm")?.addEventListener("submit", async function
     displayResults(results);
 });
 
-// Display search results function
+// Display search results
 function displayResults(results) {
     const tableBody = document.getElementById("resultsTableBody");
     if (!tableBody) return;
 
-    tableBody.innerHTML = results.length === 0 
-        ? "<tr><td colspan='7'>No results found</td></tr>"
-        : results.map(result => `
+    tableBody.innerHTML =
+        results.length === 0
+            ? "<tr><td colspan='7'>No results found</td></tr>"
+            : results
+                  .map(
+                      (result) => `
             <tr>
                 <td>${result[0]}</td>
                 <td>${result[1]}</td>
@@ -67,136 +66,187 @@ function displayResults(results) {
                 <td>${result[5]}</td>
                 <td><a href="/population/${encodeURIComponent(result[6])}">${result[6]}</a></td>
                 <td>${result[7] || "N/A"}</td>
-            </tr>`).join("");
+            </tr>`
+                  )
+                  .join("");
 }
 
-// Check if the current page is for the SA population
+// Check if the page is for the SA population
 const isSAPopulation = window.location.pathname.includes("/population/SA");
 
-document.addEventListener("DOMContentLoaded", async () => {
-    if (!isSAPopulation) return;
+if (isSAPopulation) {
+    document.addEventListener("DOMContentLoaded", async () => {
+        console.log("✅ DOM Loaded. Populating dropdowns...");
 
-    // Elements for FST
-    const fstChromosomeSelect = document.getElementById("fstChromosomeSelect");
-    const fstTableBody = document.getElementById("fstTable").querySelector("tbody");
-    const fstPrevPageBtn = document.getElementById("fstPrevPage");
-    const fstNextPageBtn = document.getElementById("fstNextPage");
+        const ihsChromosomeSelect = document.getElementById("ihsChromosomeSelect");
+        const ihsSubpopSelect = document.getElementById("ihsSubpopSelect");
+        const fstChromosomeSelect = document.getElementById("fstChromosomeSelect");
 
-    let fstCurrentPage = 1;
-    const fstRowsPerPage = 50;
+        if (!ihsChromosomeSelect || !ihsSubpopSelect || !fstChromosomeSelect) {
+            console.error("🚨 Dropdown elements not found in DOM!");
+            return;
+        }
 
-    async function populateFstChromosomeDropdown() {
+        console.log("✅ Dropdown elements found. Fetching data...");
+
+        await populateDropdown("/api/chromosomes", ihsChromosomeSelect, "Chromosome");
+        await populateDropdown("/api/chromosomes", fstChromosomeSelect, "Chromosome");
+        await populateDropdown("/api/subpopulations", ihsSubpopSelect, "Sub-population");
+
+        console.log("✅ All dropdowns populated.");
+
+        ihsChromosomeSelect.addEventListener("change", () => {
+            console.log(`🔄 Chromosome selected: ${ihsChromosomeSelect.value}`);
+            fetchAndDisplayIHS(1);
+        });
+
+        ihsSubpopSelect.addEventListener("change", () => {
+            console.log(`🔄 Sub-population selected: ${ihsSubpopSelect.value}`);
+            fetchAndDisplayIHS(1);
+        });
+
+        fstChromosomeSelect.addEventListener("change", () => {
+            console.log(`🔄 FST Chromosome selected: ${fstChromosomeSelect.value}`);
+            fetchAndDisplayFST(1);
+        });
+    });
+
+    async function populateDropdown(apiUrl, dropdown, placeholderText) {
         try {
-            const response = await fetch("/api/chromosomes");
-            const chromosomes = await response.json();
-            fstChromosomeSelect.innerHTML = '<option value="">-- Select Chromosome --</option>';
-            chromosomes.forEach(chrom => {
+            console.log(`Fetching data from ${apiUrl}...`);
+
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            console.log(`Data received from ${apiUrl}:`, data);
+
+            if (!Array.isArray(data) || data.length === 0) {
+                console.error(`❌ Error: No valid data received from ${apiUrl}`);
+                return;
+            }
+
+            dropdown.innerHTML = `<option value="">-- Select ${placeholderText} --</option>`;
+            data.forEach((value) => {
                 const option = document.createElement("option");
-                option.value = chrom;
-                option.textContent = `Chromosome ${chrom}`;
-                fstChromosomeSelect.appendChild(option);
+                option.value = value;
+                option.textContent = `${placeholderText} ${value}`;
+                dropdown.appendChild(option);
             });
+
+            console.log(`✅ Dropdown ${placeholderText} populated successfully.`);
+
         } catch (error) {
-            console.error("Error fetching chromosome data:", error);
+            console.error(`🚨 Error fetching ${placeholderText} data from ${apiUrl}:`, error);
+        }
+    }
+
+    async function fetchAndDisplayIHS(page = 1) {
+        const chromosome = document.getElementById("ihsChromosomeSelect").value;
+        const subPopulation = document.getElementById("ihsSubpopSelect").value;
+        if (!chromosome) return;
+
+        let url = `/api/ihs?chromosome=${chromosome}&limit=50&offset=${(page - 1) * 50}`;
+        if (subPopulation) {
+            url += `&sub_population=${subPopulation}`;
+        }
+
+        console.log("Fetching IHS data from:", url);
+
+        try {
+            const response = await fetch(url);
+            const ihsData = await response.json();
+            console.log("IHS Data:", ihsData);
+
+            const ihsTableBody = document.getElementById("ihsTable").querySelector("tbody");
+
+            if (!Array.isArray(ihsData) || ihsData.length === 0) {
+                ihsTableBody.innerHTML = "<tr><td colspan='6'>No data available</td></tr>";
+                return;
+            }
+
+            ihsTableBody.innerHTML = ihsData.map(({ Chromosome, Position, iHS_Score, Mean_iHS, Std_iHS, Population }) => `
+                <tr>
+                    <td>${Chromosome}</td>
+                    <td>${Position}</td>
+                    <td>${iHS_Score.toFixed(4)}</td>
+                    <td>${Mean_iHS.toFixed(4)}</td>
+                    <td>${Std_iHS.toFixed(4)}</td>
+                    <td>${Population}</td>
+                </tr>
+            `).join("");
+
+        } catch (error) {
+            console.error("Error fetching IHS data:", error);
         }
     }
 
     async function fetchAndDisplayFST(page = 1) {
-        const selectedChromosome = fstChromosomeSelect.value;
-        if (!selectedChromosome) return;
+        const chromosome = document.getElementById("fstChromosomeSelect").value;
+        if (!chromosome) return;
+
+        let url = `/api/fst?chromosome=${chromosome}`;
+
+        console.log("Fetching FST data from:", url);
 
         try {
-            const response = await fetch(`/api/fst?chromosome=${selectedChromosome}`);
+            const response = await fetch(url);
             const fstData = await response.json();
-            fstTableBody.innerHTML = "";
+            console.log("FST Data:", fstData);
 
-            if (fstData.length === 0) {
+            const fstTableBody = document.getElementById("fstTable").querySelector("tbody");
+
+            if (!Array.isArray(fstData) || fstData.length === 0) {
                 fstTableBody.innerHTML = "<tr><td colspan='4'>No data available</td></tr>";
                 return;
             }
 
-            const startIdx = (page - 1) * fstRowsPerPage;
-            const endIdx = startIdx + fstRowsPerPage;
-            const paginatedData = fstData.slice(startIdx, endIdx);
-
-            const fragment = document.createDocumentFragment();
-            paginatedData.forEach(({ Chromosome, Position, SNP, FST }) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
+            fstTableBody.innerHTML = fstData.map(({ Chromosome, Position, SNP, FST }) => `
+                <tr>
                     <td>${Chromosome}</td>
                     <td>${Position}</td>
                     <td>${SNP || "N/A"}</td>
                     <td>${FST.toFixed(4)}</td>
-                `;
-                fragment.appendChild(row);
-            });
-
-            fstTableBody.appendChild(fragment);
-            fstPrevPageBtn.disabled = page === 1;
-            fstNextPageBtn.disabled = endIdx >= fstData.length;
+                </tr>
+            `).join("");
 
         } catch (error) {
             console.error("Error fetching FST data:", error);
         }
     }
+}
 
-    await populateFstChromosomeDropdown();
-    fstChromosomeSelect.addEventListener("change", () => fetchAndDisplayFST(1));
+document.addEventListener("DOMContentLoaded", function () {
+    const fstPopulationSelect = document.getElementById("fstPopulationCompare");
 
-    fstPrevPageBtn.addEventListener("click", () => {
-        if (fstCurrentPage > 1) fetchAndDisplayFST(--fstCurrentPage);
-    });
-
-    fstNextPageBtn.addEventListener("click", () => {
-        fetchAndDisplayFST(++fstCurrentPage);
-    });
-});
-
-// Handle IHS data for SA population
-document.addEventListener("DOMContentLoaded", async () => {
-    if (!isSAPopulation) return;
-
-    const ihsChromosomeSelect = document.getElementById("ihsChromosomeSelect");
-    const ihsSubpopSelect = document.getElementById("ihsSubpopSelect");
-    const ihsTableBody = document.getElementById("ihsTable").querySelector("tbody");
-    const prevPageBtn = document.getElementById("prevPage");
-    const nextPageBtn = document.getElementById("nextPage");
-
-    let currentPage = 1;
-    const rowsPerPage = 50;
-
-    async function populateDropdown(url, dropdown, label) {
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            dropdown.innerHTML = `<option value="">-- Select ${label} --</option>`;
-            data.forEach(value => {
-                const option = document.createElement("option");
-                option.value = value;
-                option.textContent = value;
-                dropdown.appendChild(option);
-            });
-        } catch (error) {
-            console.error(`Error fetching ${label}:`, error);
-        }
+    if (fstPopulationSelect) {
+        fstPopulationSelect.addEventListener("change", function () {
+            const selectedComparison = this.value;
+            fetchFstData(selectedComparison);
+        });
     }
-
-    await populateDropdown("/api/chromosomes", ihsChromosomeSelect, "Chromosome");
-    await populateDropdown("/api/subpopulations", ihsSubpopSelect, "Sub-population");
-
-    ihsChromosomeSelect.addEventListener("change", () => fetchAndDisplayIHS(1));
-    ihsSubpopSelect.addEventListener("change", () => fetchAndDisplayIHS(1));
-
-    prevPageBtn.addEventListener("click", () => {
-        if (currentPage > 1) fetchAndDisplayIHS(--currentPage);
-    });
-    nextPageBtn.addEventListener("click", () => {
-        fetchAndDisplayIHS(++currentPage);
-    });
 });
+
+function fetchFstData(populationComparison) {
+    fetch(`/get_fst_data?populationComparison=${populationComparison}`)
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.querySelector("#fstTable tbody");
+            tableBody.innerHTML = ""; // Clear table before inserting new data
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row.Chromosome}</td>
+                    <td>${row.Position}</td>
+                    <td>${row.SNP}</td>
+                    <td>${row.FST}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        })
+        .catch(error => console.error("Error fetching FST data:", error));
+}
+
 
 // Back button handling
-const backButton = document.getElementById("backToResults");
-if (backButton) {
-    backButton.addEventListener("click", () => window.history.back());
-}
+document.getElementById("backToResults")?.addEventListener("click", () => window.history.back());

@@ -270,7 +270,7 @@ def get_ihs_values():
     if not chromosome:
         return jsonify({"error": "Chromosome parameter is required"}), 400
 
-    table_name = "ihs_stat_SA"  # Only available table for SA
+    table_name = "ihs_stat_SA"
 
     query = f"""
     SELECT Chromosome, Position, iHS_Score, Mean_iHS, Std_iHS, Population
@@ -283,7 +283,9 @@ def get_ihs_values():
         query += " AND Population = ?"
         params.append(sub_population)
 
+    print(f"Executing query: {query} with params {params}")  # 🛠 Debugging step 1
     results = query_database(query, params)
+    print(f"IHS Query Results: {results}")  # 🛠 Debugging step 2
 
     ihs_data = [
         {
@@ -299,6 +301,7 @@ def get_ihs_values():
     return jsonify(ihs_data)
 
 
+
 @app.route("/api/fst", methods=["GET"])
 def get_fst_values():
     """Fetch FST values based on selected chromosome."""
@@ -311,10 +314,10 @@ def get_fst_values():
     table_name = "fst_GIHvsGBR"  # Only available table
 
     query = f"""
-    SELECT Chromosome, Position, dbSNP, FST
+    SELECT CHROM, POS, dbSNP, FST
     FROM {table_name}
-    WHERE Chromosome = ?
-    ORDER BY Position
+    WHERE CHROM = ?
+    ORDER BY POS
     """
     results = query_database(query, (chromosome,))
 
@@ -328,6 +331,25 @@ def get_fst_values():
     ]
     return jsonify(fst_data)
 
+@app.route("/get_fst_data", methods=["GET"])
+def get_fst_data():
+    population_comparison = request.args.get("populationComparison")
+
+    if not population_comparison:
+        return jsonify({"error": "No population comparison selected"}), 400
+
+    conn = get_db_connection()
+    try:
+        # Updated query: Changed 'Chromosome' to 'CHROM'
+        query = f"SELECT CHROM as Chromosome, POS as Position, dbSNP as SNP, FST FROM {population_comparison} LIMIT 100"
+        cursor = conn.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+
+        data = [dict(row) for row in rows]
+        return jsonify(data)
+    except sqlite3.Error as e:
+        return jsonify({"error": str(e)}), 500
 
 # Runs the Flask app in debug mode.
 if __name__ == "__main__":

@@ -32,7 +32,7 @@
         </section>
         
         {% if sub_populations %}
-            
+        
         <section id="subPopulationDetails">
             <h2>Sub-population Information</h2>
             <table>
@@ -60,73 +60,82 @@
         <section id="populationStatistics">
             <h2>Summary Statistics of Positive Selection: </h2>
 
-        <h3>FST Values</h3>
-        <h4>Overall Stats:</h4>
-        <p>Overall Mean FST Score:</p>
-        <p>Overall FST Standard Deviation:</p>
+            <h3>FST Values</h3>
+            <h4>Overall Stats:</h4>
+            <p>Overall Mean FST Score:</p>
+            <p>Overall FST Standard Deviation:</p>
 
-        <h4>Sub-Population specific Stats:</h4>
-        <!-- FST Values Dropdown -->
-        <label for="fstChromosomeSelect">Select Chromosome:</label>
-        <select id="fstChromosomeSelect">
-            <option value="">-- Select Chromosome --</option>
-        </select>
+            <h4>Sub-Population specific Stats:</h4>
+            <label for="fstPopulationCompare">Select Population Comparison:</label>
+            <select id="fstPopulationCompare">
+                <option value="">-- Select Population --</option>
+                <script>
+                    const allowedPopulations = ["SA", "EU"];
+                    console.log("Current Population Page:", populationName); // Debugging step
 
-        <!-- Scrollable table container -->
-        <div id="fstTableContainer">
-            <table id="fstTable">
-                <thead>
-                    <tr>
-                        <th>Chromosome</th>
-                        <th>Position</th>
-                        <th>SNP</th>
-                        <th>FST</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+                    if (allowedPopulations.includes(populationName)) {
+                        document.write('<option value="fst_GIHvsGBR">GIH vs GBR</option>');
+                    }
+                </script>
+            </select>
 
+            <label for="fstChromosomeSelect">Select Chromosome:</label>
+            <select id="fstChromosomeSelect" disabled>
+                <option value="">-- Select Chromosome --</option>
+            </select>
 
+            <!-- Scrollable table container -->
+            <div id="fstTableContainer">
+                <table id="fstTable">
+                    <thead>
+                        <tr>
+                            <th>Chromosome</th>
+                            <th>Position</th>
+                            <th>SNP</th>
+                            <th>FST</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
 
-        <h3>IHS Values</h3>
-        <h4>Overall Stats:</h4>
-        <p>Overall Mean iHS Score:</p>
-        <p>Overall iHS Standard Deviation:</p>
-        
-        <h4>Sub-Population Specific Stats:</h4>
-        <label for="ihsChromosomeSelect">Select Chromosome:</label>
-        <select id="ihsChromosomeSelect">
-            <option value="">-- Select Chromosome --</option>
-        </select>
+            <h3>IHS Values</h3>
+            <h4>Overall Stats:</h4>
+            <p>Overall Mean iHS Score:</p>
+            <p>Overall iHS Standard Deviation:</p>
+            
+            <h4>Sub-Population Specific Stats:</h4>
+            <label for="ihsChromosomeSelect">Select Chromosome:</label>
+            <select id="ihsChromosomeSelect">
+                <option value="">-- Select Chromosome --</option>
+            </select>
 
-        <label for="ihsSubpopSelect">Select Sub-population:</label>
-        <select id="ihsSubpopSelect">
-            <option value="">-- Select Sub-population --</option>
-        </select>
+            <label for="ihsSubpopSelect">Select Sub-population:</label>
+            <select id="ihsSubpopSelect">
+                <option value="">-- Select Sub-population --</option>
+            </select>
 
-        <!-- Scrollable table container -->
-        <div id="ihsTableContainer">
-            <table id="ihsTable">
-                <thead>
-                    <tr>
-                        <th>Chromosome</th>
-                        <th>Position</th>
-                        <th>iHS Score</th>
-                        <th>Mean iHS</th>
-                        <th>Std iHS</th>
-                        <th>Population</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>               
-            </table>
-        </div>
-        <div class="pagination-controls">
-            <button id="prevPage" disabled>Previous</button>
-            <button id="nextPage">Next</button>
-        </div> 
-        <br>
-
+            <!-- Scrollable table container -->
+            <div id="ihsTableContainer">
+                <table id="ihsTable">
+                    <thead>
+                        <tr>
+                            <th>Chromosome</th>
+                            <th>Position</th>
+                            <th>iHS Score</th>
+                            <th>Mean iHS</th>
+                            <th>Std iHS</th>
+                            <th>Population</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>               
+                </table>
+            </div>
+            <div class="pagination-controls">
+                <button id="prevPage" disabled>Previous</button>
+                <button id="nextPage">Next</button>
+            </div> 
+            <br>
         </section>
 
         <button id="downloadData">Download Summary Statistics</button>
@@ -152,20 +161,35 @@
             a.click();
         });
 
-        const ctx = document.getElementById("selectionPlot").getContext("2d");
-        new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: ["Region 1", "Region 2", "Region 3", "Region 4"],
-                datasets: [{
-                    label: "Positive Selection",
-                    data: [1.2, 2.5, 1.8, 2.1],
-                    borderColor: "blue",
-                    fill: false
-                }]
+        document.getElementById("fstPopulationCompare").addEventListener("change", function () {
+            const selectedComparison = this.value;
+            console.log("Selected Population Comparison: ", selectedComparison); // Debugging step
+
+            const chromosomeSelect = document.getElementById("fstChromosomeSelect");
+            chromosomeSelect.disabled = selectedComparison === "";
+
+            if (selectedComparison === "fst_GIHvsGBR") {
+                fetch(`/get_fst_data?populationComparison=${selectedComparison}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Fetched Data: ", data); // Debugging step
+                        const tableBody = document.querySelector("#fstTable tbody");
+                        tableBody.innerHTML = "";
+                        data.forEach(row => {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                                <td>${row.Chromosome}</td>
+                                <td>${row.Position}</td>
+                                <td>${row.SNP}</td>
+                                <td>${row.FST}</td>
+                            `;
+                            tableBody.appendChild(tr);
+                        });
+                    })
+                    .catch(error => console.error("Error fetching FST data:", error));
             }
         });
+
     </script>
 </body>
-
 </html>
